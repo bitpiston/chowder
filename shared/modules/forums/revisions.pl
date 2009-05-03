@@ -20,6 +20,7 @@ $revision[1]{'up'}{'site'} = sub {
         ('hot_posts_threshold', '50'),
         ('hot_views_threshold', '500'),
         ('max_post_length', '10000'),
+        ('min_post_length', '3'),
         ('min_subject_length', '3'),
         ('max_subject_length', '100'),
         ('read_only', '0')~);
@@ -80,6 +81,7 @@ $revision[1]{'up'}{'site'} = sub {
     user::add_permission('forums_edit_forums');
     user::add_permission('forums_delete_forums');
     user::add_permission('forums_create_threads');
+    user::add_permission('forums_edit_threads');
     user::add_permission('forums_delete_threads');
     user::add_permission('forums_create_posts');
     user::add_permission('forums_edit_posts');

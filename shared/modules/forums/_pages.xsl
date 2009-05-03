@@ -23,10 +23,10 @@
 			<xsl:if test="$remaining = 3 and $current &gt; 4"> &#8230;</xsl:if>
 			<xsl:if test="not($current &gt; 3) or $remaining &lt;= 3">
 				<xsl:choose>
-					<xsl:when test="/oyster/forums/@page = $current and $nav = 1">
+					<xsl:when test="/oyster/forums/@page = $current and $nav = 1" xml:space="preserve">
 						<strong class="selected"><xsl:value-of select="$current" /></strong>
 					</xsl:when>
-					<xsl:otherwise>
+					<xsl:otherwise xml:space="preserve">
 						<a href="{$url}?p={$current}"><xsl:value-of select="$current" /></a>
 					</xsl:otherwise>
 				</xsl:choose>

@@ -27,6 +27,10 @@
         'name'   => 'Create Threads',
         'levels' => ['No', 'Yes'],
     },
+    'forums_edit_threads' => {
+        'name'   => 'Edit Threads',
+        'levels' => ['No', 'Yes '],
+    },
     'forums_delete_threads' => {
         'name'   => 'Delete Threads',
         'levels' => ['No', 'Yes - Self', 'Yes - All'],

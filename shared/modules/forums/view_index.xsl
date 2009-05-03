@@ -28,4 +28,7 @@
 				</xsl:for-each>
 			</div>
 		</xsl:if>
+		<ul class="icons_legend">
+			<li><img src="{/oyster/@styles}{/oyster/@style}/images/forums_new.png" alt="" /> New posts</li>		
+		</ul>
 	</xsl:template>

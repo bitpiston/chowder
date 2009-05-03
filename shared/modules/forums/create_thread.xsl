@@ -1,5 +1,10 @@
 	<xsl:template match="/oyster/forums[@action = 'create_thread']" mode="title">New Thread</xsl:template>
-	<xsl:template match="/oyster/forums[@action = 'create_thread']" mode="heading">New Thread<xsl:if test="/oyster/forums//post/body/xhtml or /oyster/forums//confirmation">: <xsl:value-of select="/oyster/forums//post/@title" /></xsl:if></xsl:template>
+	<xsl:template match="/oyster/forums[@action = 'create_thread']" mode="heading">
+		<xsl:choose>
+			<xsl:when test="/oyster/forums//post/body/xhtml"><xsl:value-of select="/oyster/forums//post/@title" /></xsl:when>
+			<xsl:otherwise>New Thread</xsl:otherwise>
+		</xsl:choose>
+	</xsl:template>
 	<xsl:template match="/oyster/forums[@action = 'create_thread']" mode="description" xml:space="preserve">
 		<div class="path">Forum: <a href="{/oyster/@base}forums/">Overview</a> 
 			<xsl:for-each select="/oyster/forums//forum[@id = /oyster/forums/@forum_id]/ancestor::forum">
@@ -8,7 +13,6 @@
 			<span>&#8250;</span> <strong><a href="{/oyster/@base}forums/forum/{@forum_id}/"><xsl:value-of select="/oyster/forums//forum[@id = /oyster/forums/@forum_id]/@name" /></a></strong> <a href="{/oyster/@base}forums/rss/" title="RSS feed of all posts"><img src="{/oyster/@styles}{/oyster/@style}/images/feed.png" alt="RSS" /></a></div>
 			<div class="desc"><xsl:value-of select="/oyster/forums//forum[@id = /oyster/forums/@forum_id]/@description" /></div>
 	</xsl:template>
-
 	<xsl:template match="/oyster/forums[@action = 'create_thread']" mode="content">
 		<xsl:if test="/oyster/forums//error">
 			<div class="errors">
@@ -18,8 +22,8 @@
 			</div>
 		</xsl:if>
 		<xsl:if test="/oyster/forums//confirmation">
-			<div class="confirmation"><span><strong>Confirmation: </strong> <xsl:value-of select="/oyster/forums//confirmation/text()" /> </span></div>
-			<p>If you have not been redirected to your new thread please <a href="{/oyster/@base}forums/thread/{/oyster/forums//post/@id}">click here to go there now</a>.</p><br />
+			<div class="confirmation"><span><strong>Confirmation: </strong> <xsl:value-of select="/oyster/forums//confirmation/text()" /></span></div>
+			<p>If you have not been redirected to your new thread please <a href="{/oyster/@base}forums/thread/{/oyster/forums//post/@id}/">click here to go there now</a>.</p><br />
 		</xsl:if>
 		<xsl:if test="not(/oyster/forums//confirmation)">
 			<form class="compose_container" id="posteditor_form" action="{/oyster/@url}?a=create" method="post">
@@ -42,23 +46,23 @@
 								</div>
 								<div class="author">
 									<div class="name"><a href="{/oyster/@base}user/{/oyster/forums//post/@author_name}"><xsl:value-of select="/oyster/forums//post/@author_name" /></a></div>
-									<div class="title"><xsl:value-of select="/oyster/forums//post/@author_title" />Administrator</div>
-									<img class="avatar" src="http://janpingel.com/misc/forums/avatars/random/avatar.jpeg" alt="Avatar" />
-									<div class="posts"><a href="search;nodef=1;Query=49;ResultView=2;InUser=1;Sort=2">39</a> posts</div>
-									<div class="age">Jul 2006</div>
-									<div class="location">Canada</div>
+									<div class="title"><xsl:value-of select="/oyster/forums//post/@author_title" /></div>
+									<img class="avatar" src="{/oyster/forums//post/@author_avatar}" alt="Avatar" />
+									<div class="posts"><a href=""><xsl:value-of select="/oyster/forums//post/@author_posts + 1" /></a> posts</div>
+									<div class="age"><xsl:value-of select="/oyster/forums//post/@author_registered" /></div>
+									<div class="location"><xsl:value-of select="/oyster/forums//post/@author_location" /></div>
 								</div>
 							</div>
 						</div>
 					</div>
 				</xsl:if>
 				<strong>Compose post:</strong><br />
-				<div class="subject_container">
+				<div class="subject">
 					<label for="thread_subject">Subject:</label>
 					<input type="text" name="subject" id="thread_subject" maxlength="{/oyster/forums/@subject_length}" value="{/oyster/forums//post/@title}" />
 				</div>
 				<!-- Formating editor, smiley inserter and special characters -->
-				<br /><br /><label for="thread_body">Message:</label><br />
+				<label for="thread_body">Message:</label><br />
 				<textarea id="thread_body" name="body" rows="10" cols="40"><xsl:value-of select="/oyster/forums//post/body/raw" /></textarea>
 				<div class="editor_controls">
 					<small>Text length: <span id="textlength">?</span> characters (Maximum: <xsl:value-of select="/oyster/forums/@post_length" />)</small>
@@ -105,7 +109,7 @@
 					-->
 				</div>
 				<div class="submit_container">
-					<input type="submit" name="save" id="save" value="Post reply" />
+					<input type="submit" name="save" id="save" value="Post thread" />
 					<input type="submit" name="preview" id="preview" value="Preview" />
 				</div>
 			</form>

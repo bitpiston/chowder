@@ -1,20 +1,15 @@
 	<xsl:template name="forum">
 		<xsl:param name="depth" select="0" />
-		<!-- do me
-		<xsl:if test="">
-			<xsl:attribute name="class">newposts</xsl:attribute>
-		</xsl:if>
-		-->
-		<div class="forum_icon"> <!-- ditch me for css background -->
-			<a href="{/oyster/@base}forums/forum/{@id}/"><img src="{/oyster/@styles}{/oyster/@style}/images/comments.png" alt="" /></a>
-		</div>
 		<div class="forum_header">
+			<xsl:variable name="url">
+				<xsl:if test="@new = 1">_new</xsl:if><!-- do me -->
+			</xsl:variable>
 			<xsl:choose>
 				<xsl:when test="$depth = 2">
-					<h3 xml:space="preserve"><a href="{/oyster/@base}forums/forum/{@id}/"><xsl:value-of select="@name" /></a> <em>(New posts)</em></h3><!-- css bg replace span text: <img src="./layout/images/new.png" alt="" title="Forum" /> -->
+					<h3 xml:space="preserve"><a href="{/oyster/@base}forums/forum/{@id}/"><span class="icon"><img src="{/oyster/@styles}{/oyster/@style}/images/forums{$url}.png" alt="" /> </span><xsl:value-of select="@name" /></a></h3>
 				</xsl:when>
 				<xsl:otherwise>
-					<h2 xml:space="preserve"><a href="{/oyster/@base}forums/forum/{@id}/"><xsl:value-of select="@name" /></a> <em>(New posts)</em></h2><!-- css bg replace span text: <img src="./layout/images/new.png" alt="" title="Forum" /> -->
+					<h2 xml:space="preserve"><a href="{/oyster/@base}forums/forum/{@id}/"><span class="icon"><img src="{/oyster/@styles}{/oyster/@style}/images/forums{$url}.png" alt="" /> </span><xsl:value-of select="@name" /></a></h2>
 				</xsl:otherwise>
 			</xsl:choose>			 
 			<!-- do me
