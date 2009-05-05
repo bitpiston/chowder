@@ -10,7 +10,7 @@
 				<meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
 
 				<!-- mootools library -->
-				<script src="{@styles}mootools.js" type="text/javascript"></script>
+				<script src="{@styles}mootools-old.js" type="text/javascript"></script>
 
 				<!-- oyster library -->
 				<script src="{@styles}oyster.js" type="text/javascript"></script>
