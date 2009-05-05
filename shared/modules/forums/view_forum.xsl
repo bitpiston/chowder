@@ -1,5 +1,5 @@
 	<oyster:include href="forums/_forum.xsl" />
-	<oyster:include href="forums/_pages.xsl" />	
+	<oyster:include href="forums/_pages.xsl" />
 	<xsl:template match="/oyster/forums[@action = 'view_forum']" mode="title"><xsl:value-of select="/oyster/forums//forum[@id = /oyster/forums/@forum_id]/@name" /></xsl:template>
 	<xsl:template match="/oyster/forums[@action = 'view_forum']" mode="heading"><a href="{/oyster/@base}forums/forum/{/oyster/forums/@forum_id}/"><xsl:value-of select="/oyster/forums//forum[@id = /oyster/forums/@forum_id]/@name" /></a></xsl:template>
 	<xsl:template match="/oyster/forums[@action = 'view_forum']" mode="description" xml:space="preserve">

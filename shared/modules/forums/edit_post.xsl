@@ -29,13 +29,22 @@
 							<div class="post_container">
 								<div class="post">
 									<h2 class="number">#<xsl:value-of select="/oyster/forums//thread/@replies + 2" /></h2><!-- do me -->
-									<div class="date"><xsl:value-of select="/oyster/forums//thread/post/@ctime" /></div>
+									<div class="date">
+										<xsl:call-template name="date">
+											<xsl:with-param name="time" select="/oyster/forums//thread/post/@ctime" />
+											<xsl:with-param name="date_format" select="/oyster/user/@date_format" />
+										</xsl:call-template>
+									</div>
 									<div class="body">
 										<xsl:apply-templates select="/oyster/forums//thread/post/body/xhtml/node()" mode="xhtml" />
 									</div>
 									<xsl:if test="/oyster/forums//thread/post/@disable_edit != 1">
 										<div class="edit">
-											Edited by <xsl:value-of select="/oyster/forums//thread/post/@edit_user" /> at <xsl:value-of select="/oyster/forums//thread/post/@edit_ctime" />
+											Edited by <xsl:value-of select="/oyster/forums//thread/post/@edit_user" /> on 
+											<xsl:call-template name="date">
+												<xsl:with-param name="time" select="/oyster/forums//thread/post/@edit_ctime" />
+												<xsl:with-param name="date_format" select="/oyster/user/@date_format" />
+											</xsl:call-template>
 											<xsl:if test="string-length(/oyster/forums//thread/post/@edit_reason) != 0">
 												<br />Reason: <xsl:value-of select="/oyster/forums//thread/post/@edit_reason" />
 											</xsl:if>

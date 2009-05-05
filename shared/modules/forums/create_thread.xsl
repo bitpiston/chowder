@@ -34,7 +34,12 @@
 							<div class="post_container">
 								<div class="post">
 									<h2 class="number">#1</h2>
-									<div class="date"><xsl:value-of select="/oyster/forums//post/@ctime" /></div>
+									<div class="date">
+										<xsl:call-template name="date">
+											<xsl:with-param name="time" select="/oyster/forums//post/@ctime" />
+											<xsl:with-param name="date_format" select="/oyster/user/@date_format" />
+										</xsl:call-template>
+									</div>
 									<div class="body">
 										<xsl:apply-templates select="/oyster/forums//post/body/xhtml/node()" mode="xhtml" />
 									</div>

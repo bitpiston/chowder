@@ -9,6 +9,13 @@
 			<span>&#8250;</span> <strong><a href="{/oyster/@base}forums/forum/{@forum_id}/"><xsl:value-of select="/oyster/forums//forum[@id = /oyster/forums/@forum_id]/@name" /></a></strong> <a href="{/oyster/@base}forums/rss/" title="RSS feed of all posts"><img src="{/oyster/@styles}{/oyster/@style}/images/feed.png" alt="RSS" /></a></div>
 			<div class="desc"><xsl:value-of select="/oyster/forums//forum[@id = /oyster/forums/@forum_id]/@description" /></div>
 	</xsl:template>
+	<xsl:template match="/oyster/forums[@action = 'view_thread']" mode="html_head">
+		<xsl:if test="/oyster/forums/@post_id">
+			<script type="text/javascript"><!-- view_post.js => YUI -->
+				<![CDATA[function ScrollToId(c){try{window.clearTimeout(ScrollTimeout)}catch(b){}var f=0;try{f+=ScrollOffset}catch(b){}var g="]]>p<xsl:value-of select="/oyster/forums/@post_id" /><![CDATA[";var a=window.location.href;if(g!=""){var e=document.getElementById(g);if(e!=null){var d=e.offsetTop;while(e=e.offsetParent){d+=e.offsetTop}d-=7;d+=f;window.scrollTo(0,d)}}}if(window.addEventListener!=null){window.addEventListener("load",ScrollToId,false)}var ScrollTimeout=window.setTimeout("ScrollToId();",1000);]]>
+			</script>
+		</xsl:if>
+	</xsl:template>
 	<xsl:template match="/oyster/forums[@action = 'view_thread']" mode="content">
 		<div class="all_post_actions_top">
 			<xsl:if test="/oyster/forums//thread[@id = /oyster/forums/@thread_id]/@pages > 1">
@@ -34,14 +41,23 @@
 				<div id="p{@id}" class="post_container">
 					<div class="post">
 						<h2 class="number"><a rel="bookmark" href="{/oyster/@base}forums/post/{@id}/" title="Link to this post">#<xsl:value-of select="@number" /></a></h2>
-						<div class="date"><xsl:value-of select="@ctime" /></div>
-						<!-- post subject? drop it if its equal to the thread title. Default Re: for quick reply/quote and empty for new reply. -->
+						<div class="date">
+							<xsl:call-template name="date">
+								<xsl:with-param name="time" select="@ctime" />
+								<xsl:with-param name="date_format" select="/oyster/user/@date_format" />
+							</xsl:call-template>
+						</div>
+						<xsl:if test="string-length(@title) != 0 and @title != ../@title"><div class="title"><strong><xsl:value-of select="@title" /></strong></div></xsl:if>
 						<div class="body">
 							<xsl:apply-templates select="body/node()" mode="xhtml" />
 						</div>
 						<xsl:if test="@edit_count != 0 and string-length(@edit_ctime) != 0">
 							<div class="edit">
-								Edited by <xsl:value-of select="@edit_user" /> at <xsl:value-of select="@edit_ctime" />
+								Edited by <xsl:value-of select="@edit_user" /> on 
+								<xsl:call-template name="date">
+									<xsl:with-param name="time" select="@edit_ctime" />
+									<xsl:with-param name="date_format" select="/oyster/user/@date_format" />
+								</xsl:call-template>
 								<xsl:if test="string-length(@edit_reason) != 0">
 									<br />Reason: <xsl:value-of select="@edit_reason" />
 								</xsl:if>

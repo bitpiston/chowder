@@ -25,30 +25,36 @@ $revision[1]{'up'}{'site'} = sub {
         ('max_subject_length', '100'),
         ('read_only', '0')~);
 
-    # Create default forum table
+    # Create default forums table
     $DB->query(qq~CREATE TABLE IF NOT EXISTS `${DB_PREFIX}forums` (
         `id` int(11) NOT NULL auto_increment,
         `name` text NOT NULL,
         `parent_id` int(11) NOT NULL,
         `description` text NOT NULL,
+        `threads` int(11) NOT NULL,
+        `posts` int(11) NOT NULL,
         UNIQUE KEY `id` (`id`)
         ) ENGINE=MyISAM  DEFAULT CHARSET=latin1~);
-    $DB->query(qq~INSERT INTO `${DB_PREFIX}forums` (`id`, `name`, `parent_id`, `description`) VALUES
-        (1, 'Placeholder forum', 0, 'The placeholder forum.')~);
+    $DB->query(qq~INSERT INTO `${DB_PREFIX}forums` (`id`, `name`, `parent_id`, `description`, `threads`, `posts`) VALUES
+        (1, 'Placeholder forum', 0, 'The placeholder forum.', 1, 1)~);
     
-    # Create default thread table
+    # Create default threads table
     $DB->query(qq~CREATE TABLE IF NOT EXISTS `${MODULE_DB_PREFIX}threads` (
         `id` int(11) NOT NULL auto_increment,
         `title` text NOT NULL,
         `forum_id` int(11) NOT NULL,
+        `post_id` int(11) default NULL,
         `author_id` int(11) NOT NULL,
         `author_name` varchar(32) NOT NULL,
         `date` int(11) NOT NULL,
-        `lastpost_date` int(11) NOT NULL,
-        `lastpost_user` varchar(32) NOT NULL,
+        `lastpost_date` int(11) default NULL,
+        `lastpost_id` int(11) default NULL,
+        `lastpost_author` varchar(32) default NULL,
         `views` int(11) NOT NULL,
         `replies` int(11) NOT NULL,
-        `sticky` tinyint(1) NOT NULL DEFAULT '0',
+        `sticky` tinyint(1) NOT NULL default '0',
+        `locked` tinyint(4) NOT NULL default '0',
+        `moved_from` int(11) default NULL,
         PRIMARY KEY  (`id`)
         ) ENGINE=MyISAM  DEFAULT CHARSET=latin1~);
     $DB->query(qq~INSERT INTO `${MODULE_DB_PREFIX}threads` (`id`, `title`, `forum_id`, `author_id`, `author_name`, `date`, `lastpost_date`, `lastpost_user`, `views`, `replies`) VALUES
@@ -63,15 +69,18 @@ $revision[1]{'up'}{'site'} = sub {
         `author_name` varchar(32) NOT NULL,
         `body` longtext NOT NULL,
         `date` int(11) NOT NULL,
-        `edit_user` varchar(32) NOT NULL,
-        `edit_reason` text NOT NULL,
-        `edit_date` int(11) NOT NULL,
-        `edit_count` int(11) NOT NULL,
+        `edit_user` varchar(32) default NULL,
+        `edit_reason` text,
+        `edit_date` int(11) default NULL,
+        `edit_count` int(11) default '0',
         `replyto` int(11) NOT NULL,
+        `disable_signature` tinyint(4) NOT NULL,
+        `disable_smiles` tinyint(4) NOT NULL,
+        `disable_bbcode` tinyint(4) NOT NULL,
         PRIMARY KEY  (`id`)
         ) ENGINE=MyISAM  DEFAULT CHARSET=latin1~);
-    $DB->query(qq~INSERT INTO `${MODULE_DB_PREFIX}posts` (`id`, `title`, `thread_id`, `author_id`, `author_name`, `body`, `date`, `edit_user`, `edit_reason`, `edit_date`, `edit_count`, `replyto`) VALUES
-        (1, 'Frist psot!!!!!', 1, 1, 'test', 'Hello world', 1152166974, '', '', '', 0, 0)~);
+    $DB->query(qq~INSERT INTO `${MODULE_DB_PREFIX}posts` (`id`, `title`, `thread_id`, `author_id`, `author_name`, `body`, `date`) VALUES
+        (1, 'Frist psot!!!!!', 1, 1, 'test', 'Hello world', 1152166974)~);
     
     # Add the forum permissions
     user::add_permission('forums_admin');

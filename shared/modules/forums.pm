@@ -177,8 +177,8 @@ sub view_forum {
     $pages = math::ceil($forums{ $forum_id }->{'threads'} / $config{'threads_per_page'});
     
     # Print the module node
-    my $current_page = defined $page ? ' page="'. $page .'"' : ' page="1"';
-    print qq~\t<forums action="view_forum" forum_id="$forum_id"$current_page>\n~;
+    my $attributes = defined $page ? ' page="'. $page .'"' : ' page="1"';
+    print qq~\t<forums action="view_forum" forum_id="$forum_id"$attributes>\n~;
     
     # Print the parent forum nodes and set the indent level
     my ($depth, $closing_nodes) = _print_parents($forum_id);
@@ -259,6 +259,7 @@ sub view_forum {
 
 sub view_thread {
     my $thread_id = $_[0];
+    my $post_id = $_[1];
     
     user::require_permission('forums_view');
     user::print_module_permissions('forums');
@@ -285,8 +286,10 @@ sub view_thread {
     $pages = math::ceil(($replies + 1) / $config{'posts_per_page'});
 
     # Print the forum node
-    my $current_page = defined $page ? ' page="'. $page .'"' : ' page="1"';
-    print qq~\t<forums action="view_thread" thread_id="$thread_id" forum_id="$forum_id"$current_page>\n~;
+    my $attributes;
+    $attributes .= defined $page ? ' page="'. $page .'"' : ' page="1"';
+    $attributes .= ' post_id="'. $post_id .'"' if defined $post_id;
+    print qq~\t<forums action="view_thread" thread_id="$thread_id" forum_id="$forum_id"$attributes>\n~;
 
     # Get the forum details by id
     my ($forum_title, $forum_description, $forum_parent) = ($forums{ $forum_id }->{'name'}, $forums{ $forum_id }->{'description'}, $forums{ $forum_id }->{'parent_id'});
@@ -378,12 +381,23 @@ sub view_post {
     goto &edit_post if $INPUT{'a'} eq "edit";
     goto &delete_post if $INPUT{'a'} eq "delete";
     
-    #style::include_template('view_post');
- 
     # Get the post by id if it exists or error
-    my $query = $DB->query("SELECT title, forum_id, author_id, author_name, lastpost_date, lastpost_id, lastpost_author, date, views, replies FROM ${module_db_prefix}threads WHERE id = ? LIMIT 1", $thread_id);
+    my $query = $DB->query("SELECT thread_id FROM ${module_db_prefix}posts WHERE id = ? LIMIT 1", $post_id);
     throw 'request_404' if $query->rows() == 0;
-    my ($thread_title, $forum_id, $author_id, $author_name, $lastpost_date, $lastpost_id, $lastpost_author, $date, $views, $replies) = @{$query->fetchrow_arrayref()};
+    my $thread_id = $query->fetchrow_arrayref()->[0];
+    
+    # Get the post's page in the thread
+    $query = $DB->query("SELECT COUNT(1) FROM ${module_db_prefix}posts WHERE thread_id = ? AND id <= ?", $thread_id, $post_id);
+    my $page = math::ceil($query->fetchrow_arrayref()->[0] / $config{'posts_per_page'}) unless $query->rows() == 0;
+    
+    # Set the page number
+    $INPUT{'p'} = "$page" if defined $page;
+    
+    # Prepend the thread id
+    unshift @_, $thread_id;
+     
+    # View the thread
+    goto &view_thread;
 }
 
 =xml
@@ -689,6 +703,12 @@ sub delete_thread {
             <todo>
                 Review recent posts
             </todo>
+            <todo>
+                Formating editor, smiles and character count js
+            </todo>
+            <todo>
+                Increment user post count pending profiles
+            </todo>
         </function>
 =cut
 
@@ -763,10 +783,10 @@ sub create_post {
             my @errors;
             
             # Subject min-length
-            push @errors, 'Subject is too short. Minimum of '. $config{'min_subject_length'} .' characters required.' if length $INPUT{'subject'} < $config{'min_subject_length'};
+            push @errors, 'Subject is too short. Minimum of '. $config{'min_subject_length'} .' characters required.' if length $INPUT{'subject'} < $config{'min_subject_length'} and length $INPUT{'subject'} > 0;
                         
             # Subject max-length
-            push @errors, 'Subject is too long. Maximum of '. $config{'max_subject_length'} .' characters allowed.' if length $INPUT{'subject'} > $config{'max_subject_length'};
+            push @errors, 'Subject is too long. Maximum of '. $config{'max_subject_length'} .' characters allowed.' if length $INPUT{'subject'} > $config{'max_subject_length'} and length $INPUT{'subject'} > 0;
             
             # Post body min-length
             push @errors, 'Post body is too short. Minimum of '. $config{'min_post_length'} .' characters required.' if length $INPUT{'body'} < $config{'min_post_length'};
@@ -837,6 +857,8 @@ sub create_post {
 sub edit_post {
     my $post_id = shift;
 
+    user::require_permission('forums_view');
+    user::print_module_permissions('forums');
     style::include_template('edit_post');
     
     # Get the post by id if it exists or error
@@ -845,8 +867,12 @@ sub edit_post {
     my ($post_title, $thread_id, $post_author_id, $post_author_name, $body, $post_date, $signature, $smiles, $bbcode) = @{$query->fetchrow_arrayref()};
 
     # Check permissions
-    if ($USER{'id'} == $post_author_id and $PERMISSIONS{'forums_edit_posts'} != 2) { user::require_permission('forums_edit_posts', 1); }
-    else { user::require_permission('forums_edit_posts', 2); }
+    if ($USER{'id'} == $post_author_id and $PERMISSIONS{'forums_edit_posts'} != 2) {
+        user::require_permission('forums_edit_posts', 1);
+    }
+    else {
+        user::require_permission('forums_edit_posts', 2);
+    }
 
     # Get the thread by id if it exists or error
     $query = $DB->query("SELECT title, forum_id, post_id, author_id, author_name, replies, sticky, locked FROM ${module_db_prefix}threads WHERE id = ? LIMIT 1", $thread_id);
@@ -968,6 +994,8 @@ sub edit_post {
 sub delete_post {
     my $post_id = shift;
 
+    user::require_permission('forums_view');
+    user::print_module_permissions('forums');
     style::include_template('delete_post');
     
     # Get the post by id if it exists or error
@@ -976,8 +1004,12 @@ sub delete_post {
     my ($post_title, $thread_id, $post_author_id, $post_author_name, $body, $post_date, $signature, $smiles, $bbcode) = @{$query->fetchrow_arrayref()};
 
     # Check permissions
-    if ($USER{'id'} == $post_author_id and $PERMISSIONS{'forums_delete_posts'} != 2) { user::require_permission('forums_deletet_posts', 1); }
-    else { user::require_permission('forums_delete_posts', 2); }
+    if ($USER{'id'} == $post_author_id and $PERMISSIONS{'forums_delete_posts'} != 2) {
+        user::require_permission('forums_deletet_posts', 1);
+    }
+    else {
+        user::require_permission('forums_delete_posts', 2);
+    }
 
     # Get the thread by id if it exists or error
     $query = $DB->query("SELECT title, forum_id, post_id, author_id, author_name, replies, sticky, locked FROM ${module_db_prefix}threads WHERE id = ? LIMIT 1", $thread_id);
@@ -1286,7 +1318,9 @@ sub _pretty_dates {
     # Days in this month
     my $days = datetime::days_in_month(1900 + [gmtime()]->[5], ++[gmtime()]->[4]);
 
-    if ($date <= 60) { $date_pretty = "today, second"; }   # lte one minute
+    if ($date <= 60) {                                      # lte one minute
+        $date_pretty = "today, second";
+    }
     elsif ($date <= 3600) {                                 # lte one hour
         $date = math::round($date / 60);
         $date_pretty = "today, ". $date ." minute";
@@ -1295,10 +1329,10 @@ sub _pretty_dates {
         $date = math::round($date / 3600);
         $date_pretty = "today, ". $date ." hour";
     }
-    elsif ($date <= 172800) {                               # lte two days
-        $date = math::round($date / 3600);
-        $date_pretty = "yesterday, ". $date ." hour";
-    }
+    #elsif ($date <= 172800) {                               # lte two days
+    #    $date = math::round($date / 3600);
+    #    $date_pretty = "yesterday, ". $date ." day";
+    #}
     elsif ($date <= 604800) {                               # lte one week
         $date = math::round($date / 86400);
         $date_pretty = $date ." day";
@@ -1311,12 +1345,12 @@ sub _pretty_dates {
         $date = math::round($date / 2629743.83);
         $date_pretty = $date ." month";
     }
-    elsif ($date <= 63072000) {                             # lte 2 years
-        $date = 1;
-        $date_pretty = "1 year";
-    }
+    #elsif ($date <= 63072000) {                             # lte 2 years
+    #    $date = 1;
+    #    $date_pretty = "1 year";
+    #}
     else {
-        $date = math::round($date_pretty / 31536000);
+        $date = math::round($date / 31536000);
         $date_pretty = $date ." year";
     }
     
