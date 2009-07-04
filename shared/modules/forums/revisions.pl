@@ -25,7 +25,7 @@ $revision[1]{'up'}{'site'} = sub {
         ('max_subject_length', '100'),
         ('read_only', '0')~);
 
-    # Create default forums table
+    # Table structure for table site_forums_forums
     $DB->query(qq~CREATE TABLE IF NOT EXISTS `${DB_PREFIX}forums` (
         `id` int(11) NOT NULL auto_increment,
         `name` text NOT NULL,
@@ -38,7 +38,7 @@ $revision[1]{'up'}{'site'} = sub {
     $DB->query(qq~INSERT INTO `${DB_PREFIX}forums` (`id`, `name`, `parent_id`, `description`, `threads`, `posts`) VALUES
         (1, 'Placeholder forum', 0, 'The placeholder forum.', 1, 1)~);
     
-    # Create default threads table
+    # Table structure for table site_forums_threads
     $DB->query(qq~CREATE TABLE IF NOT EXISTS `${MODULE_DB_PREFIX}threads` (
         `id` int(11) NOT NULL auto_increment,
         `title` text NOT NULL,
@@ -60,7 +60,7 @@ $revision[1]{'up'}{'site'} = sub {
     $DB->query(qq~INSERT INTO `${MODULE_DB_PREFIX}threads` (`id`, `title`, `forum_id`, `author_id`, `author_name`, `date`, `lastpost_date`, `lastpost_user`, `views`, `replies`) VALUES
         (1, 'Frist psot!', 1, 1, 'test', 1152166974, 1154203367, 'test', 0, 0, 0)~);
     
-    # Create default posts table
+    # Table structure for table site_forums_posts
     $DB->query(qq~CREATE TABLE IF NOT EXISTS `${MODULE_DB_PREFIX}posts` (
         `id` int(11) NOT NULL auto_increment,
         `title` text NOT NULL,
@@ -81,6 +81,16 @@ $revision[1]{'up'}{'site'} = sub {
         ) ENGINE=MyISAM  DEFAULT CHARSET=latin1~);
     $DB->query(qq~INSERT INTO `${MODULE_DB_PREFIX}posts` (`id`, `title`, `thread_id`, `author_id`, `author_name`, `body`, `date`) VALUES
         (1, 'Frist psot!!!!!', 1, 1, 'test', 'Hello world', 1152166974)~);
+        
+    # Table structure for table site_forums_activity
+    $DB->query(qq~CREATE TABLE IF NOT EXISTS `${MODULE_DB_PREFIX}activity` (
+      `date` int(11) NOT NULL,
+      `type` varchar(32) NOT NULL,
+      `id` int(11) default NULL,
+      `title` text,
+      `user` varchar(32) NOT NULL,
+      UNIQUE KEY `user` (`user`)
+      ) ENGINE=MyISAM DEFAULT CHARSET=latin1~);
     
     # Add the forum permissions
     user::add_permission('forums_admin');

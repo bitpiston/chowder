@@ -19,9 +19,6 @@
         File attachements
     </todo>
     <todo>
-        User activity. Users reading this thread, viewing this forum, overview stats, etc.
-    </todo>
-    <todo>
         Unread/new threads/posts
     </todo>
     <todo>
@@ -69,6 +66,9 @@ sub hook_load {
     
     # load forums
     _cache_forums();
+    
+    # every 15 minutes clean up old activity
+    ipc::do_periodic(900, 'forums', '_clean_activity');
 }
 
 =xml
@@ -139,6 +139,9 @@ sub view_index {
     
     # Print the forums and their subforums
     _print_forums();
+    
+    # Users activity
+    _user_activity('overview');
     
     # Close the forum node
     print "\t</forums>\n";
@@ -239,8 +242,14 @@ sub view_forum {
         print qq~\t\t$indent<thread id="$thread->[0]" title="$thread->[1]" parent_id="$thread->[2]" author_id="$thread->[3]" author_name="$thread->[4]" ctime="$thread->[5]" last_date="$lastpost_date" last_ctime="$lastpost_ctime" last_id="$thread->[7]" last_author="$thread->[8]" views="$thread->[9]" replies="$thread->[10]" sticky="$thread->[11]" locked="$thread->[12]" pages="$pages"$attributes />\n~;
     }
     
-    # Close the thread, forum, parent nodes and forums node
-    print "\t$indent</forum>\n" . $closing_nodes . "\t</forums>\n";
+    # Close the thread, forum and parent nodes
+    print "\t$indent</forum>\n" . $closing_nodes;
+    
+    # Users activity
+    _user_activity('forum', --$depth, $forum_id, $forum_title);
+    
+    # Close the forums node
+    print "\t</forums>\n";
 }
 
 =xml
@@ -351,8 +360,14 @@ sub view_thread {
         print qq~\t\t\t$indent</post>\n~;
     }
 
-    # Close the thread, forum, parent nodes and forums node
-    print "\t\t$indent</thread>\n\t$indent</forum>\n" . $closing_nodes . "\t</forums>\n";
+    # Close the thread, forum and parent nodes
+    print "\t\t$indent</thread>\n\t$indent</forum>\n". $closing_nodes;
+    
+    # Users activity
+    _user_activity('thread', --$depth, $thread_id, $thread_title);
+    
+    # Close the forums node
+    print "\t</forums>\n";
     
     # increment thread views
     # TODO this needs to ignore views for the duration of the users session to avoid incrementing views for each page of thread
@@ -387,7 +402,7 @@ sub view_post {
     my $thread_id = $query->fetchrow_arrayref()->[0];
     
     # Get the post's page in the thread
-    $query = $DB->query("SELECT COUNT(1) FROM ${module_db_prefix}posts WHERE thread_id = ? AND id <= ?", $thread_id, $post_id);
+    $query = $DB->query("SELECT COUNT(1) FROM ${module_db_prefix}posts WHERE thread_id = ? and id <= ?", $thread_id, $post_id);
     my $page = math::ceil($query->fetchrow_arrayref()->[0] / $config{'posts_per_page'}) unless $query->rows() == 0;
     
     # Set the page number
@@ -410,6 +425,9 @@ sub view_post {
             </todo>
             <todo>
                 Increment user post count pending profiles
+            </todo>
+            <todo>
+              Consider using the multitable format for the SQL UPDATE query
             </todo>
         </function>
 =cut
@@ -525,6 +543,9 @@ sub create_thread {
             <synopsis>
                 Edits and/or moves a thread
             </synopsis>
+            <todo>
+              Consider using the multitable format for the SQL UPDATE query
+            </todo>
         </function>
 =cut
 
@@ -598,11 +619,7 @@ sub edit_thread {
 
                 # Adjust forum post/thread totals if moving the thread
                 my $posts = $replies + 1;
-=xml
-                # Retrieve the post totals
-                $query = $DB->query("SELECT COUNT(1) FROM ${module_db_prefix}posts WHERE thread_id = ?", $thread_id);
-                my $posts = $query->fetchrow_arrayref()->[0];
-=cut
+
                 # Increment
                 $DB->query("UPDATE ${DB_PREFIX}forums SET threads = threads + 1, posts = posts + $posts WHERE id = ? LIMIT 1", $move_to);
                 
@@ -672,12 +689,7 @@ sub delete_thread {
             
             # Delete the posts
             $DB->query("DELETE FROM ${module_db_prefix}posts WHERE thread_id = ? LIMIT $posts", $thread_id);
-=xml
-            $query = $DB->query("DELETE FROM ${module_db_prefix}posts WHERE thread_id = ? LIMIT $posts", $thread_id);
-
-            # Get the number of posts deleted
-            my $posts = $query->rows();
-=cut            
+         
             # Update forum post/thread totals
             $DB->query("UPDATE ${DB_PREFIX}forums SET threads = threads - 1, posts = posts - $posts WHERE id = ? LIMIT 1", $forum_id);
                         
@@ -708,6 +720,9 @@ sub delete_thread {
             </todo>
             <todo>
                 Increment user post count pending profiles
+            </todo>
+            <todo>
+              Consider using the multitable format for the SQL UPDATE query
             </todo>
         </function>
 =cut
@@ -851,6 +866,9 @@ sub create_post {
             <synopsis>
                 Edits a post
             </synopsis>
+            <todo>
+              Consider using the multitable format for the SQL UPDATE query
+            </todo>
         </function>
 =cut
 
@@ -988,6 +1006,9 @@ sub edit_post {
             <synopsis>
                 Deletes a post
             </synopsis>
+            <todo>
+              Consider using the multitable format for the SQL UPDATE query
+            </todo>
         </function>
 =cut
 
@@ -1298,6 +1319,79 @@ sub _cache_forums {
 }
 
 =xml
+    <function name="_user_activity">
+        <synopsis>
+            Logs and prints user activity.
+        </synopsis>
+        <todo>
+            Delete user activity over 24hrs old
+        </todo>
+    </function>
+=cut
+
+sub _user_activity {
+    my $date = datetime::gmtime();
+    my ($type, $depth, $id, $title) = @_;
+    
+    $depth  = 0 unless defined $depth;
+    my $indent = "\t" x $depth;
+    
+    # Log the users activity
+    my $sql_set = "date = '". datetime::gmtime ."', type = '". $type ."'";
+    $sql_set .= defined $id ? ", id = '". $id ."'" : ", id = NULL";
+    $sql_set .= defined $title ? ", title = '". $title ."'" : ", title = NULL";
+    my $username = $USER{'name'};
+    $username .= "-". $USER{'session'} if $USER{'id'} == 0;
+    
+    # Update or insert a new row for the users activity
+    my $sql_values;
+    $sql_values = defined $id ? "'". $id ."'" : "NULL";
+    $sql_values .= defined $title ? ", '". $title ."'" : ", NULL";
+    $DB->query("INSERT INTO ${module_db_prefix}activity (date, type, id, title, user) VALUES (?, ?, $sql_values, ?) ON DUPLICATE KEY UPDATE $sql_set", datetime::gmtime, $type, $username);
+    
+    # Get the current active users
+    my $current_time = datetime::gmtime() - 300;
+    my $current_where = "date > ". $current_time;
+    $current_where .= " and type = '". $type ."'" unless $type eq "overview";
+    $current_where .= " and id = ". $id if defined $id;
+    $query = $DB->query("SELECT user FROM ${module_db_prefix}activity WHERE $current_where ORDER BY date DESC");
+    
+    # Prepare a list of the current active users and count guests + users
+    my $current_guests = 0;
+    my @current_users;
+    while ( my $user = $query->fetchrow_arrayref() ) {
+        ++$current_guests if $user->[0] =~ /^Guest(.*)?/;
+        push @current_users, $user->[0] unless $user->[0] =~ /^Guest(.*)?/;
+    }
+    my $current_usernames = join ', ', @current_users;
+    my $current_users = scalar @current_users;
+    
+    # Print the current active users 
+    print qq~\t\t$indent<activity-current usernames="$current_usernames" users="$current_users" guests="$current_guests" />\n~;
+    
+    # For the overview do the same as above for the entire day
+    if ($type eq "overview") {
+        
+        # Get todays active users
+        my $todays_time = datetime::gmtime() - 86400;
+        $query = $DB->query("SELECT user FROM ${module_db_prefix}activity WHERE date > $todays_time ORDER BY date DESC");
+    
+        # Prepare a list of all of todays for the overview
+        my $todays_guests = 0;
+        my @todays_users;
+        while ( my $user = $query->fetchrow_arrayref() ) {
+            ++$todays_guests if $user->[0] =~ /^Guest(.*)?/;
+            push @todays_users, $user->[0] unless $user->[0] =~ /^Guest(.*)?/;
+        }
+        my $todays_usernames = join ', ', @todays_users;
+        my $todays_users = scalar @todays_users;
+        
+        # Print today's active users
+        print qq~\t\t$indent<activity-todays usernames="$todays_usernames" users="$todays_users" guests="$todays_guests" />\n~;        
+    }
+}
+
+=xml
     <function name="_pretty_dates">
         <synopsis>
             Returns how long ago a post was
@@ -1361,9 +1455,24 @@ sub _pretty_dates {
 }
 
 =xml
+    <function name="_clean_sessions">
+        <synopsis>
+            Cleans up old activity entries from the database
+        </synopsis>
+    </function>
+=cut
+
+# delete expired guest sessions from the database
+sub _clean_activity {
+    $interval = 86400;
+    
+    $DB->query("DELETE FROM ${module_db_prefix}activity WHERE date <= ?", datetime::gmtime - $interval);
+}
+
+=xml
 </document>
 =cut
 
 1;
 
-# Copyright BitPiston 2008
+# Copyright BitPiston 2009

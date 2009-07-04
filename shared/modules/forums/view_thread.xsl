@@ -1,4 +1,5 @@
-	<oyster:include href="forums/_pages.xsl" />	
+	<oyster:include href="forums/_pages.xsl" />
+	<oyster:include href="forums/_split.xsl" />
 	<xsl:template match="/oyster/forums[@action = 'view_thread']" mode="title"><xsl:value-of select="/oyster/forums//thread[@id = /oyster/forums/@thread_id]/@title" /></xsl:template>
 	<xsl:template match="/oyster/forums[@action = 'view_thread']" mode="heading"><a href="{/oyster/@base}forums/thread/{/oyster/forums/@thread_id}/"><xsl:value-of select="/oyster/forums//thread[@id = /oyster/forums/@thread_id]/@title" /></a></xsl:template>
 	<xsl:template match="/oyster/forums[@action = 'view_thread']" mode="description" xml:space="preserve">
@@ -149,7 +150,19 @@
 			</div>
 		</xsl:if>
 		<div class="online_forum_data">
-			<p><strong>User count</strong> 1 reading this thread: <a href="">username</a></p>
+			<p>
+				<strong><xsl:value-of select="activity-current/@users" /></strong> user<xsl:choose>
+					<xsl:when test="activity-current/@users != 1">s are</xsl:when>
+					<xsl:otherwise> is</xsl:otherwise>
+				</xsl:choose> reading this thread<xsl:if test="activity-current/@users != 0">: </xsl:if> 
+				<xsl:call-template name="split">
+					<xsl:with-param name="to-be-split" select="activity-current/@usernames" />
+					<xsl:with-param name="delimiter" select="','" />
+				</xsl:call-template>
+				<xsl:if test="activity-current/@guests != 0">
+					 and <strong><xsl:value-of select="activity-current/@guests" /></strong> guest<xsl:if test="activity-current/@guests != 1">s</xsl:if>
+				</xsl:if>
+			</p>
 		</div>
 	</xsl:template>
 	
