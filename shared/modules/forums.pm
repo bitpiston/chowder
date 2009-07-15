@@ -7,35 +7,33 @@
         Work in progress.
     </warning>
     <todo>
-        Replace 404s with specific forum errors.
-    </todo>
-    <todo>
         Add support for parsing smileys, disable smiles option
     </todo>
     <todo>
         Disable bbcode should still generate new lines and paragraphs
     </todo>
     <todo>
-        File attachements
+        Unread/new threads/posts
     </todo>
     <todo>
-        Unread/new threads/posts
+        Confirmation redirects
+    </todo>
+    <todo>
+        Replace 404s with specific forum errors.
     </todo>
     <todo>
         Merge and split threads
     </todo>
     <todo>
-        Email notifcation of replies
+        Manage forums: create, edit, delete, reorder...
     </todo>
     <todo>
-        Script to sync thread/post totals for forums overview
-    </todo>
-    <todo>
+        Do this last:
         Replace bbcode parsing of post body with a cache'd copy in the database?
         Parsing the bbcode for the posts is about 0.1 seconds of extra work!
     </todo>
     <todo>
-        Confirmation redirects
+        File attachements
     </todo>
 =cut
 
@@ -49,6 +47,7 @@ use exceptions;
 use user;
 
 our %forums;
+our $new_reply_notify;
 
 =xml
     <function name="hook_load">
@@ -63,6 +62,11 @@ our %forums;
 
 event::register_hook('load', 'hook_load');
 sub hook_load {
+    our $increment_totals = $DB->prepare("UPDATE ${DB_PREFIX}forums SET posts = posts + 1 WHERE id = ? LIMIT 1", $forum_id);
+    
+    our $exists_notify = $DB->prepare("SELECT * FROM ${module_db_prefix}notify WHERE user_id = ? and thread_id = ? LIMIT 1");
+    our $insert_notify = $DB->prepare("INSERT INTO ${module_db_prefix}notify (user_id, thread_id) VALUES (?, ?)");
+    our $delete_notify = $DB->prepare("DELETE FROM ${module_db_prefix}notify WHERE user_id = ? and thread_id = ? LIMIT 1");
     
     # load forums
     _cache_forums();
@@ -427,7 +431,7 @@ sub view_post {
                 Increment user post count pending profiles
             </todo>
             <todo>
-              Consider using the multitable format for the SQL UPDATE query
+                Consider using the multitable format for the SQL UPDATE query
             </todo>
         </function>
 =cut
@@ -520,13 +524,16 @@ sub create_thread {
             $DB->query("UPDATE ${module_db_prefix}threads SET lastpost_id = ?, post_id = ? WHERE id = ? LIMIT 1", $post_id, $post_id, $thread_id);
                 
             # Increment forum post and thread totals
-            $DB->query("UPDATE ${DB_PREFIX}forums SET threads = threads + 1, posts = posts + 1 WHERE id = ? LIMIT 1", $forum_id);
+            $increment_totals->execute($forum_id);
 
             # Increment user's post count
             # Todo pending profiles!
                                 
             # Update cache and sync daemons
             ipc::do('forums', '_cache_forums');
+            
+            # Add user to notify table for this thread
+            $insert_notify->execute($USER{'id'}, $thread_id) if $notify == 1;
 
             # Confirmation
             confirmation('Your thread has been created. You will be redirected to your new thread.');
@@ -729,6 +736,7 @@ sub delete_thread {
 
 sub create_post {
     my $thread_id = shift;
+    my $post_id;
     
     user::require_permission('forums_create_posts');
     style::include_template('create_post');
@@ -755,6 +763,10 @@ sub create_post {
     # Print the thread node 
     print qq~\t\t$indent<thread id="$thread_id" title="$thread_title" author_id="$author_id" author_name="$author_name" replies="$replies">\n~;
 
+    # Check if the user has notify set for this thread
+    $exists_notify->execute($USER{'id'}, $thread_id);
+    my $notify = $exists_notify->rows() ? 1 : 0;
+
     # If quoting another post and the form has not been submitted
     my $body;
     if (defined $INPUT{'q'} and $ENV{'REQUEST_METHOD'} ne 'POST') {
@@ -774,18 +786,23 @@ sub create_post {
         $body = '[quote='. $quote_author .']'. $quote_body .'[/quote]'."\n";
         
         # Print the post
-        print qq~\t\t\t$indent<post>\n~;
+        print qq~\t\t\t$indent<post notify="$notify">\n~;
         print qq~\t\t\t\t$indent<body>\n~;
         print qq~\t\t\t\t\t$indent<raw>$body</raw>\n~;
         print qq~\t\t\t\t$indent</body>\n~;
         print qq~\t\t\t$indent</post>\n~;
+    }
+    
+    # If the form has not been submited and not quoting a post
+    elsif (!defined $INPUT{'q'} and $ENV{'REQUEST_METHOD'} ne 'POST') {
+        print qq~\t\t\t$indent<post notify="$notify" />\n~;
     }
 
     # If the form has been submitted
     if ($ENV{'REQUEST_METHOD'} eq 'POST') {
         my $gmtime      = datetime::gmtime();
         my $ctime       = datetime::from_unixtime($gmtime);
-        my $notify      = defined $INPUT{'enable_notification'} ? 1 : 0;
+        $notify         = defined $INPUT{'enable_notification'} ? 1 : 0;
         my $signature   = defined $INPUT{'disable_signature'} ? 1 : 0;
         my $smiles      = defined $INPUT{'disable_smiles'} ? 1 : 0;
         my $bbcode      = defined $INPUT{'disable_bbcode'} ? 1: 0;
@@ -841,15 +858,27 @@ sub create_post {
             $DB->query("UPDATE ${module_db_prefix}threads SET lastpost_id = ?, lastpost_author = ?, lastpost_date = ?, replies = replies + 1 WHERE id = ? LIMIT 1", $post_id, $USER{'name'}, $gmtime, $thread_id);
                 
             # Increment forum post and thread totals
-            $DB->query("UPDATE ${DB_PREFIX}forums SET posts = posts + 1 WHERE id = ? LIMIT 1", $forum_id);
+            $increment_totals->execute($forum_id);
 
             # Increment user's post count
             # Todo pending profiles!
             
-            # Notify or replies...todo
-                                
             # Update cache and sync daemons
             ipc::do('forums', '_cache_forums');
+
+            # Add user to notify table for this thread unless they are already in the db
+            if ($notify == 1) {
+                $exists_notify->execute($USER{'id'}, $thread_id);
+                $insert_notify->execute($USER{'id'}, $thread_id) unless $exists_notify->rows();
+            }
+            
+            # Remove the user from the notify table
+            else {
+                $delete_notify->execute($USER{'id'}, $thread_id);
+            }
+         
+            # Notify users of replies
+            $new_reply_notify = $thread_id;
 
             # Confirmation
             confirmation('Your reply has been posted. You will be redirected to your new post.');
@@ -922,6 +951,10 @@ sub edit_post {
     # Pending profiles! posts, registered, location, avatar, signature
     $query = $DB->query("SELECT id FROM users WHERE id = ? LIMIT 1", $post_author_id);
     my @author = @{$query->fetchrow_arrayref()};
+    
+    # Check if the thread has notifications set for this user
+    $exists_notify->execute($USER{'id'}, $thread_id);
+    my $notify = $exists_notify->rows() ? 1 : 0;
 
     # If the form has been submitted
     my ($body_xhtml, $edit_reason, $gmtime, $ctime, $disable_edit, $edit_date);
@@ -929,7 +962,7 @@ sub edit_post {
     if ($ENV{'REQUEST_METHOD'} eq 'POST') {
         $gmtime       = datetime::gmtime();
         $ctime        = datetime::from_unixtime($gmtime);
-        my $notify    = defined $INPUT{'enable_notification'} ? 1 : 0;
+        $notify    = defined $INPUT{'enable_notification'} ? 1 : 0;
         $signature    = defined $INPUT{'disable_signature'} ? 1 : 0;
         $smiles       = defined $INPUT{'disable_smiles'} ? 1 : 0;
         $bbcode       = defined $INPUT{'disable_bbcode'} ? 1: 0;
@@ -968,16 +1001,25 @@ sub edit_post {
         # If validation succeeded and saving
         if ($success and $INPUT{'save'}) {
             
-            # Insert into the post table
+            # Ipdate the post table
             $DB->query("UPDATE ${module_db_prefix}posts SET title = ?, body = ?, disable_signature = ?, disable_smiles = ?, disable_bbcode = ?, edit_user = ?, edit_reason = ?, edit_date = ?, edit_count = edit_count + 1 WHERE id = ? LIMIT 1", $subject, $body, $signature, $smiles, $bbcode, $USER{'name'}, $edit_reason, $gmtime, $post_id);
             
             # If the post is the thread's opening post, update the title if it changed
             $DB->query("UPDATE ${module_db_prefix}threads SET title = ? WHERE id = ? LIMIT 1", $subject, $thread_id) if $op_id == $post_id and $subject ne $thread_title;
-
-            # Notify or replies...todo
                                 
             # Update cache and sync daemons
             ipc::do('forums', '_cache_forums');
+            
+            # Add user to notify table for this thread unless they are already in the db
+            if ($notify == 1) {
+                $exists_notify->execute($USER{'id'}, $thread_id);
+                $insert_notify->execute($USER{'id'}, $thread_id) unless $exists_notify->rows();
+            }
+            
+            # Remove the user from the notify table
+            else {
+                $delete_notify->execute($USER{'id'}, $thread_id);
+            }
 
             # Confirmation
             confirmation('Your post has been saved. You will be redirected to your post.');
@@ -989,7 +1031,7 @@ sub edit_post {
     my $post_ctime = datetime::from_unixtime($post_date);
     my $signature_xhtml = xml::bbcode($author[4]) if $signature == 0;
     
-    print qq~\t\t\t$indent<post id="$post_id" title="$subject" author_id="$post_author_id" author_name="$post_author_name" author_title="$post_author_title" author_posts="$author[0]" author_registered="$author[1]" author_location="$author[2]" author_avatar="$author[3]" ctime="$post_ctime" signature="$signature" smiles="$smiles" bbcode="$bbcode" edit_user="$USER{'name'}" edit_reason="$edit_reason" edit_ctime="$ctime" disable_edit="$disable_edit">\n~;
+    print qq~\t\t\t$indent<post id="$post_id" title="$subject" author_id="$post_author_id" author_name="$post_author_name" author_title="$post_author_title" author_posts="$author[0]" author_registered="$author[1]" author_location="$author[2]" author_avatar="$author[3]" ctime="$post_ctime" signature="$signature" smiles="$smiles" bbcode="$bbcode" notify="$notify" edit_user="$USER{'name'}" edit_reason="$edit_reason" edit_ctime="$ctime" disable_edit="$disable_edit">\n~;
     print qq~\t\t\t\t$indent<body>\n~;
     print qq~\t\t\t\t\t$indent<raw>$body</raw>\n~;
     print qq~\t\t\t\t\t$indent<xhtml>$body_xhtml</xhtml>\n~ if $body_xhtml and $ENV{'REQUEST_METHOD'} eq 'POST';
@@ -1301,18 +1343,6 @@ sub _cache_forums {
         my $query = $DB->query("SELECT lastpost_date, lastpost_author, lastpost_id, title FROM ${module_db_prefix}threads WHERE forum_id = ? ORDER BY lastpost_date DESC LIMIT 1", $forum->{'id'});
         ($forum->{'lastpost_date'}, $forum->{'lastpost_author'}, $forum->{'lastpost_id'}, $forum->{'lastpost_title'}) = @{$query->fetchrow_arrayref()};
 
-=xml
-        # Thread and post count
-        # To store in the sql table or not to is the question...
-        my $query = $DB->query("SELECT replies FROM ${module_db_prefix}threads WHERE forum_id = ?", $forum->{'id'});
-        my ($threads, $posts) = 0;
-        while ( my $row = $query->fetchrow_arrayref() ) {
-            $posts = ++$posts + $row->[0];
-            ++$threads;
-        }
-        ($forum->{'threads'}, $forum->{'posts'}) = ($threads, $posts);
-=cut
-
         # Everything else
         $forums{ $forum->{'id'} } = $forum;
     }
@@ -1323,9 +1353,6 @@ sub _cache_forums {
         <synopsis>
             Logs and prints user activity.
         </synopsis>
-        <todo>
-            Delete user activity over 24hrs old
-        </todo>
     </function>
 =cut
 
@@ -1337,7 +1364,7 @@ sub _user_activity {
     my $indent = "\t" x $depth;
     
     # Log the users activity
-    my $sql_set = "date = '". datetime::gmtime ."', type = '". $type ."'";
+    my $sql_set = "date = '". datetime::gmtime() ."', type = '". $type ."'";
     $sql_set .= defined $id ? ", id = '". $id ."'" : ", id = NULL";
     $sql_set .= defined $title ? ", title = '". $title ."'" : ", title = NULL";
     my $username = $USER{'name'};
@@ -1347,14 +1374,14 @@ sub _user_activity {
     my $sql_values;
     $sql_values = defined $id ? "'". $id ."'" : "NULL";
     $sql_values .= defined $title ? ", '". $title ."'" : ", NULL";
-    $DB->query("INSERT INTO ${module_db_prefix}activity (date, type, id, title, user) VALUES (?, ?, $sql_values, ?) ON DUPLICATE KEY UPDATE $sql_set", datetime::gmtime, $type, $username);
+    $DB->query("INSERT INTO ${module_db_prefix}activity (date, type, id, title, user_name, user_id) VALUES (?, ?, $sql_values, ?, ?) ON DUPLICATE KEY UPDATE $sql_set", datetime::gmtime, $type, $username, $USER{'id'});
     
     # Get the current active users
     my $current_time = datetime::gmtime() - 300;
     my $current_where = "date > ". $current_time;
     $current_where .= " and type = '". $type ."'" unless $type eq "overview";
     $current_where .= " and id = ". $id if defined $id;
-    $query = $DB->query("SELECT user FROM ${module_db_prefix}activity WHERE $current_where ORDER BY date DESC");
+    $query = $DB->query("SELECT user_name FROM ${module_db_prefix}activity WHERE $current_where ORDER BY date DESC");
     
     # Prepare a list of the current active users and count guests + users
     my $current_guests = 0;
@@ -1374,7 +1401,7 @@ sub _user_activity {
         
         # Get todays active users
         my $todays_time = datetime::gmtime() - 86400;
-        $query = $DB->query("SELECT user FROM ${module_db_prefix}activity WHERE date > $todays_time ORDER BY date DESC");
+        $query = $DB->query("SELECT user_name FROM ${module_db_prefix}activity WHERE date > $todays_time ORDER BY date DESC");
     
         # Prepare a list of all of todays for the overview
         my $todays_guests = 0;
@@ -1392,12 +1419,65 @@ sub _user_activity {
 }
 
 =xml
+    <function name="_new_reply_notify">
+        <synopsis>
+            Notifies users of new posts.
+        </synopsis>
+        <note>
+            This uses event::register_hook() to execute at the right times.
+        </note>
+        <example>
+            $new_reply_notify = $thread_id;
+        </example>
+    </function>
+=cut
+
+event::register_hook('request_cleanup', '_new_reply_notify');
+sub _new_reply_notify {
+    $thread_id = defined $new_reply_notify ? $new_reply_notify : 0;
+    
+    if ($thread_id != 0) {
+        
+        # Retrieve the users to be notified for this thread
+        $query = $DB->query("
+            SELECT ${module_db_prefix}notify.user_id, ${module_db_prefix}notify.last_ntime, users.name, users.email, users.date_format, ${module_db_prefix}activity.date 
+            FROM ${module_db_prefix}notify, users, ${module_db_prefix}activity 
+            WHERE ${module_db_prefix}notify.thread_id = ? and users.id = ${module_db_prefix}notify.user_id and ${module_db_prefix}activity.user = users.name"
+        , $thread_id);
+        
+        # Set the notification time to avoid duplicate notifications later
+        $DB->query("UPDATE ${module_db_prefix}notify SET last_ntime = ? WHERE thread_id = ?", datetime::gmtime, $thread_id);
+        
+        while ( my $notice = $query->fetchrow_arrayref() ) {
+            my ($user_id, $last_ntime, $user_name, $email, $date_format, $last_atime) = @{$notice};
+        
+            # Check if the user has been notified before
+            if ( (!defined $last_ntime or (defined $last_ntime and (!defined $last_atime or $last_atime > $last_ntime))) and $user_id != $USER{'id'} ) {
+                
+                # Send the email notifcation
+                email::send_template(
+                    'forums_notify',
+                    $email,
+                    {
+                        'site_name'    => $CONFIG{'site_name'},
+                        'username'     => $user_name,
+                        'date_format'  => $date_format,
+                        'post_url'     => "$CONFIG{full_url}forums/post/$post_id/",
+                        'thread_title' => $thread_title,
+                    }
+                );
+            }
+        }
+    }
+}
+
+=xml
     <function name="_pretty_dates">
         <synopsis>
             Returns how long ago a post was
         </synopsis>
         <note> 
-            This should ideally be done in XSL but the required XSL1 for calculating date differences is rather heavy
+            This should ideally be done in XSL but the required XSLT 1.0 for calculating date differences is rather heavy.
         </note>
     </function>
 =cut
@@ -1428,7 +1508,7 @@ sub _pretty_dates {
     #    $date_pretty = "yesterday, ". $date ." day";
     #}
     elsif ($date <= 604800) {                               # lte one week
-        $date = math::round($date / 86400);
+        $date = math::ceil($date / 86400);
         $date_pretty = $date ." day";
     }
     elsif ($date <= (86400 * $days)) {                      # lte one month
@@ -1462,11 +1542,10 @@ sub _pretty_dates {
     </function>
 =cut
 
-# delete expired guest sessions from the database
 sub _clean_activity {
-    $interval = 86400;
+    $interval = 86400; # 24 hours
     
-    $DB->query("DELETE FROM ${module_db_prefix}activity WHERE date <= ?", datetime::gmtime - $interval);
+    $DB->query("DELETE FROM ${module_db_prefix}activity WHERE user_id = '0' and date <= ?", datetime::gmtime() - $interval);
 }
 
 =xml

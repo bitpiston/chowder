@@ -88,9 +88,29 @@ $revision[1]{'up'}{'site'} = sub {
       `type` varchar(32) NOT NULL,
       `id` int(11) default NULL,
       `title` text,
-      `user` varchar(32) NOT NULL,
-      UNIQUE KEY `user` (`user`)
+      `user_name` varchar(32) NOT NULL,
+      `user_id` int(11) default NULL,
+      UNIQUE KEY `user_name` (`user_name`)
       ) ENGINE=MyISAM DEFAULT CHARSET=latin1~);
+      
+    # Table structure for site_forums_notify
+    $DB->query(qq~CREATE TABLE IF NOT EXISTS `site_forums_notify` (
+      `user_id` int(11) NOT NULL,
+      `thread_id` int(11) NOT NULL,
+      `last_ntime` int(11) default NULL
+    ) ENGINE=MyISAM DEFAULT CHARSET=latin1~);
+    
+    # Default email templates for the forums
+    $DB->query(qq~INSERT INTO `${DB_PREFIX}email_templates` (
+        `name`,
+        `subject`,
+        `body`
+        )
+        VALUES (
+        'forums_notify', 
+        'Forum reply notification: {thread_title}', 
+        'Hello {username}, You are receiving this notification because you are watching the topic, "{thread_title}" at {site_name}. This topic has received a reply since your last visit. You can use the following link to view the replies made, no more notifications will be sent until you visit the topic. {post_url} If you no longer wish to watch this topic you can click the "Unsubscribe topic" link found at the bottom of the topic above.'
+        )~);
     
     # Add the forum permissions
     user::add_permission('forums_admin');
@@ -116,6 +136,7 @@ $revision[1]{'up'}{'site'} = sub {
     url::register('url' => 'forums/forum/(\d+)',    'module' => 'forums', 'function' => 'view_forum',    'regex' => 1);
     url::register('url' => 'forums/thread/(\d+)',   'module' => 'forums', 'function' => 'view_thread',   'regex' => 1);
     url::register('url' => 'forums/post/(\d+)',     'module' => 'forums', 'function' => 'view_post',     'regex' => 1);
+    url::register('url' => 'forums/unread',         'module' => 'forums', 'function' => 'view_unread',   'title' => 'Unread Posts');
     url::register('url' => 'admin/forums',          'module' => 'forums', 'function' => 'admin',         'title' => 'Forum Administration');
     url::register('url' => 'admin/forums/config',   'module' => 'forums', 'function' => 'admin_config',  'title' => 'Edit Forum Configration');
 };
