@@ -19,9 +19,6 @@
         Confirmation redirects
     </todo>
     <todo>
-        Replace 404s with specific forum errors.
-    </todo>
-    <todo>
         Merge and split threads
     </todo>
     <todo>
@@ -166,7 +163,7 @@ sub view_forum {
     user::print_module_permissions('forums');    
 
     # Error if the forum id is not numeric
-    throw 'request_404' unless string::is_numeric($forum_id);
+    #throw 'validation_error', 'Invalid forum requested. Forum must be numeric.' unless string::is_numeric($forum_id);
     
     # Get the forum by id if it exists or error
     throw 'request_404' if !exists $forums{ $forum_id };
@@ -199,7 +196,14 @@ sub view_forum {
     my $limit_from = defined $page ? ($page * $config{'threads_per_page'}) - $config{'threads_per_page'} : 0;
     
     # Retrieve the threads for this page and error if none
-    my $query = $DB->query("SELECT id, title, forum_id, author_id, author_name, date, lastpost_date, lastpost_id, lastpost_author, views, replies, sticky, locked, moved_from FROM ${module_db_prefix}threads WHERE forum_id = ? OR moved_from = ? ORDER BY sticky DESC, lastpost_date DESC LIMIT $limit_from , $config{'threads_per_page'}", $forum_id, $forum_id);
+    my $query = $DB->query(
+        "SELECT id, title, forum_id, author_id, author_name, date, lastpost_date, lastpost_id, lastpost_author, views, replies, sticky, locked, moved_from 
+        FROM ${module_db_prefix}threads 
+        WHERE forum_id = ? or moved_from = ? 
+        ORDER BY sticky DESC, lastpost_date DESC 
+        LIMIT $limit_from , $config{'threads_per_page'}", 
+        $forum_id, $forum_id
+    );
     throw 'request_404' if $query->rows() == 0;
     
     # Prepare to check for the user's posts in the threads
@@ -264,9 +268,6 @@ sub view_forum {
         <todo>
             Retrieve author data for posts pending profiles
         </todo>
-        <todo>
-            Debug view increment running twice!
-        </todo>
     </function>
 =cut
 
@@ -278,7 +279,7 @@ sub view_thread {
     user::print_module_permissions('forums');
     
     # Error if the thread id is not numeric
-    throw 'request_404' unless string::is_numeric($thread_id);
+    #throw 'validation_error', 'Invalid thread requested. Thread must be numeric.' unless string::is_numeric($thread_id);
     
     # Goto actions
     goto &create_post if $INPUT{'a'} eq "reply";
@@ -286,7 +287,13 @@ sub view_thread {
     goto &delete_thread if $INPUT{'a'} eq "delete";
     
     # Get the thread by id if it exists or error
-    my $query = $DB->query("SELECT title, forum_id, author_id, author_name, lastpost_date, lastpost_id, lastpost_author, date, views, replies, sticky, locked FROM ${module_db_prefix}threads WHERE id = ? LIMIT 1", $thread_id);
+    my $query = $DB->query(
+        "SELECT title, forum_id, author_id, author_name, lastpost_date, lastpost_id, lastpost_author, date, views, replies, sticky, locked 
+        FROM ${module_db_prefix}threads 
+        WHERE id = ? 
+        LIMIT 1", 
+        $thread_id
+    );
     throw 'request_404' if $query->rows() == 0;
     my ($thread_title, $forum_id, $author_id, $author_name, $lastpost_date, $lastpost_id, $lastpost_author, $date, $views, $replies, $sticky, $locked) = @{$query->fetchrow_arrayref()};
         
@@ -318,7 +325,14 @@ sub view_thread {
     # Retrieve the posts for this thread's page or error if none
     my $limit_from = ($page * $config{'posts_per_page'}) - $config{'posts_per_page'} if defined $page;
     my $limit = defined $limit_from ? $limit_from ." , ". $config{'posts_per_page'} : $config{'posts_per_page'};
-    $query = $DB->query("SELECT id, title, thread_id, author_id, author_name, body, date, edit_user, edit_reason, edit_date, edit_count, replyto, disable_signature, disable_smiles, disable_bbcode FROM ${module_db_prefix}posts WHERE thread_id = ? ORDER BY date ASC LIMIT $limit", $thread_id);
+    $query = $DB->query(
+        "SELECT id, title, thread_id, author_id, author_name, body, date, edit_user, edit_reason, edit_date, edit_count, replyto, disable_signature, disable_smiles, disable_bbcode 
+        FROM ${module_db_prefix}posts 
+        WHERE thread_id = ? 
+        ORDER BY date ASC 
+        LIMIT $limit", 
+        $thread_id
+    );
     throw 'request_404' if $query->rows() == 0;
     
     # Prepare to retrieve the user data for the posts
@@ -367,16 +381,22 @@ sub view_thread {
     # Close the thread, forum and parent nodes
     print "\t\t$indent</thread>\n\t$indent</forum>\n". $closing_nodes;
     
-    # Users activity
-    _user_activity('thread', --$depth, $thread_id, $thread_title);
-    
     # Close the forums node
     print "\t</forums>\n";
     
-    # increment thread views
-    # TODO this needs to ignore views for the duration of the users session to avoid incrementing views for each page of thread
-    $DB->query("UPDATE ${module_db_prefix}threads SET views = views + 1 WHERE id = ? LIMIT 1", $thread_id);
-    #log::error('lolcats1');
+    # increment thread views and ignore users browsing the thread
+    my $time = datetime::gmtime() - 300; # 10 minutes
+    $query = $DB->query(
+        "SELECT user_name 
+        FROM ${module_db_prefix}activity 
+        WHERE type = 'thread' AND id = $thread_id AND date > $time AND user_id = $USER{id} 
+        ORDER BY date DESC 
+        LIMIT 1"
+    );
+    $DB->query("UPDATE ${module_db_prefix}threads SET views = views + 1 WHERE id = ? LIMIT 1", $thread_id) unless $query->rows();
+    
+    # Users activity
+    _user_activity('thread', --$depth, $thread_id, $thread_title);
 }
 
 =xml
@@ -394,7 +414,7 @@ sub view_post {
     user::print_module_permissions('forums');
     
     # Error if the post id is not numeric
-    throw 'request_404' unless string::is_numeric($post_id);
+    #throw 'validation_error', 'Invalid post requested. Post must be numeric.'  unless string::is_numeric($post_id);
 
     # Goto actions
     goto &edit_post if $INPUT{'a'} eq "edit";
@@ -489,7 +509,7 @@ sub create_thread {
             push @errors, 'Post body is too long. Maximum of '. $config{'max_post_length'} .' characters allowed.' if length $INPUT{'body'} > $config{'max_post_length'};
                       
             # Post body bbcode
-            try { $body_xhtml = xml::bbcode($INPUT{'body'}) } catch 'validation_error', with { push @errors, 'Message contains incorrect bbCode. '. shift; abort(1); } if $bbcode == 0; 
+            try { $body_xhtml = xml::bbcode($body) } catch 'validation_error', with { push @errors, 'Message contains incorrect bbCode. '. shift; abort(1); } if $bbcode == 0; 
             
             # Throw errors if any
             throw 'validation_error' => @errors if @errors > 0;
@@ -513,11 +533,19 @@ sub create_thread {
         elsif ($success and $INPUT{'save'}) {
             
             # Insert into the thread table
-            $DB->query("INSERT INTO ${module_db_prefix}threads (title, forum_id, author_id, author_name, date, lastpost_date, lastpost_author, views, replies, sticky, locked) VALUES (?, ?, ?, ?, ?, ?, ? , '0', '0', ?, ?)", $subject, $forum_id, $USER{'id'}, $USER{'name'}, $gmtime, $gmtime, $USER{'name'}, $sticky, $locked);
+            $DB->query(
+                "INSERT INTO ${module_db_prefix}threads (title, forum_id, author_id, author_name, date, lastpost_date, lastpost_author, views, replies, sticky, locked) 
+                VALUES (?, ?, ?, ?, ?, ?, ? , '0', '0', ?, ?)", 
+                $subject, $forum_id, $USER{'id'}, $USER{'name'}, $gmtime, $gmtime, $USER{'name'}, $sticky, $locked
+            );
             $thread_id = $DB->insert_id();
             
             # Insert into the post table
-            $DB->query("INSERT INTO ${module_db_prefix}posts (title, thread_id, author_id, author_name, body, date, disable_signature, disable_smiles, disable_bbcode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", $subject, $thread_id, $USER{'id'}, $USER{'name'}, $body, $gmtime, $signature, $smiles, $bbcode);
+            $DB->query(
+                "INSERT INTO ${module_db_prefix}posts (title, thread_id, author_id, author_name, body, date, disable_signature, disable_smiles, disable_bbcode) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+                $subject, $thread_id, $USER{'id'}, $USER{'name'}, $body, $gmtime, $signature, $smiles, $bbcode
+            );
             $post_id = $DB->insert_id();
             
             # Update the lastpost id and opening post id for the thread
@@ -563,7 +591,13 @@ sub edit_thread {
     style::include_template('edit_thread');
     
     # Get the thread by id if it exists or error
-    my $query = $DB->query("SELECT title, forum_id, post_id, author_id, author_name, replies, sticky, locked FROM ${module_db_prefix}threads WHERE id = ? LIMIT 1", $thread_id);
+    my $query = $DB->query(
+        "SELECT title, forum_id, post_id, author_id, author_name, replies, sticky, locked 
+        FROM ${module_db_prefix}threads 
+        WHERE id = ? 
+        LIMIT 1", 
+        $thread_id
+    );
     throw 'request_404' if $query->rows() == 0;
     my ($thread_title, $forum_id, $post_id, $author_id, $author_name, $replies, $sticky, $locked) = @{$query->fetchrow_arrayref()};
     
@@ -616,7 +650,12 @@ sub edit_thread {
         if ($success) {
             
             # Update the thread
-            $DB->query("UPDATE ${module_db_prefix}threads SET title = ?, forum_id = ?, sticky = ?, locked = ? WHERE id = ? LIMIT 1", $thread_title, defined $move_to ? $move_to : $forum_id, $sticky, $locked, $thread_id);
+            $DB->query(
+                "UPDATE ${module_db_prefix}threads SET title = ?, forum_id = ?, sticky = ?, locked = ? 
+                WHERE id = ? 
+                LIMIT 1", 
+                $thread_title, defined $move_to ? $move_to : $forum_id, $sticky, $locked, $thread_id
+            );
             
             # If moving the thread
             if (defined $move_to) {
@@ -672,7 +711,13 @@ sub delete_thread {
     style::include_template('delete_thread');
     
     # Get the thread by id if it exists or error
-    my $query = $DB->query("SELECT title, forum_id, post_id, author_id, author_name, replies, sticky, locked FROM ${module_db_prefix}threads WHERE id = ? LIMIT 1", $thread_id);
+    my $query = $DB->query(
+        "SELECT title, forum_id, post_id, author_id, author_name, replies, sticky, locked 
+        FROM ${module_db_prefix}threads 
+        WHERE id = ? 
+        LIMIT 1", 
+        $thread_id
+    );
     throw 'request_404' if $query->rows() == 0;
     my ($thread_title, $forum_id, $post_id, $author_id, $author_name, $replies, $sticky, $locked) = @{$query->fetchrow_arrayref()};
     
@@ -742,12 +787,18 @@ sub create_post {
     style::include_template('create_post');
     
     # Get the thread by id if it exists or error
-    my $query = $DB->query("SELECT title, forum_id, post_id, author_id, author_name, replies, sticky, locked FROM ${module_db_prefix}threads WHERE id = ? LIMIT 1", $thread_id);
+    my $query = $DB->query(
+        "SELECT title, forum_id, post_id, author_id, author_name, replies, sticky, locked 
+        FROM ${module_db_prefix}threads 
+        WHERE id = ? 
+        LIMIT 1", 
+        $thread_id
+    );
     throw 'request_404' if $query->rows() == 0;
     my ($thread_title, $forum_id, $post_id, $author_id, $author_name, $replies, $sticky, $locked) = @{$query->fetchrow_arrayref()};
     
     # Error if the thread is locked
-    throw 'request_404' if $locked == 1;
+    throw 'validation_error', 'The topic is locked and replies are disabled.' if $locked == 1;
     
     # Print the forum node
     print qq~\t<forums action="create_post" thread_id="$thread_id" forum_id="$forum_id" subject_length="$config{'max_subject_length'}" post_length="$config{'max_post_length'}">\n~;
@@ -827,7 +878,7 @@ sub create_post {
             push @errors, 'Post body is too long. Maximum of '. $config{'max_post_length'} .' characters allowed.' if length $INPUT{'body'} > $config{'max_post_length'};
                       
             # Post body bbcode
-            try { $body_xhtml = xml::bbcode($INPUT{'body'}) } catch 'validation_error', with { push @errors, 'Message contains incorrect bbCode. '. shift; abort(1); } if $bbcode == 0; 
+            try { $body_xhtml = xml::bbcode($body) } catch 'validation_error', with { push @errors, 'Message contains incorrect bbCode. '. shift; abort(1); } if $bbcode == 0; 
             
             # Throw errors if any
             throw 'validation_error' => @errors if @errors > 0;
@@ -851,11 +902,20 @@ sub create_post {
         elsif ($success and $INPUT{'save'}) {
             
             # Insert into the post table
-            $DB->query("INSERT INTO ${module_db_prefix}posts (title, thread_id, author_id, author_name, body, date, disable_signature, disable_smiles, disable_bbcode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", $subject, $thread_id, $USER{'id'}, $USER{'name'}, $body, $gmtime, $signature, $smiles, $bbcode);
+            $DB->query(
+                "INSERT INTO ${module_db_prefix}posts (title, thread_id, author_id, author_name, body, date, disable_signature, disable_smiles, disable_bbcode) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+                $subject, $thread_id, $USER{'id'}, $USER{'name'}, $body, $gmtime, $signature, $smiles, $bbcode
+            );
             $post_id = $DB->insert_id();
             
             # Update the lastpost data and replies
-            $DB->query("UPDATE ${module_db_prefix}threads SET lastpost_id = ?, lastpost_author = ?, lastpost_date = ?, replies = replies + 1 WHERE id = ? LIMIT 1", $post_id, $USER{'name'}, $gmtime, $thread_id);
+            $DB->query(
+                "UPDATE ${module_db_prefix}threads 
+                SET lastpost_id = ?, lastpost_author = ?, lastpost_date = ?, replies = replies + 1 
+                WHERE id = ? LIMIT 1", 
+                $post_id, $USER{'name'}, $gmtime, $thread_id
+            );
                 
             # Increment forum post and thread totals
             $increment_totals->execute($forum_id);
@@ -909,7 +969,13 @@ sub edit_post {
     style::include_template('edit_post');
     
     # Get the post by id if it exists or error
-    my $query = $DB->query("SELECT title, thread_id, author_id, author_name, body, date, disable_signature, disable_smiles, disable_bbcode FROM ${module_db_prefix}posts WHERE id = ? LIMIT 1", $post_id);
+    my $query = $DB->query(
+        "SELECT title, thread_id, author_id, author_name, body, date, disable_signature, disable_smiles, disable_bbcode 
+        FROM ${module_db_prefix}posts 
+        WHERE id = ? 
+        LIMIT 1", 
+        $post_id
+    );
     throw 'request_404' if $query->rows() == 0;
     my ($post_title, $thread_id, $post_author_id, $post_author_name, $body, $post_date, $signature, $smiles, $bbcode) = @{$query->fetchrow_arrayref()};
 
@@ -922,12 +988,18 @@ sub edit_post {
     }
 
     # Get the thread by id if it exists or error
-    $query = $DB->query("SELECT title, forum_id, post_id, author_id, author_name, replies, sticky, locked FROM ${module_db_prefix}threads WHERE id = ? LIMIT 1", $thread_id);
+    $query = $DB->query(
+        "SELECT title, forum_id, post_id, author_id, author_name, replies, sticky, locked 
+        FROM ${module_db_prefix}threads 
+        WHERE id = ? 
+        LIMIT 1", 
+        $thread_id
+    );
     throw 'request_404' if $query->rows() == 0;
     my ($thread_title, $forum_id, $op_id, $thread_author_id, $thread_author_name, $replies, $sticky, $locked) = @{$query->fetchrow_arrayref()};
     
     # Error if the thread is locked
-    throw 'request_404' if $locked == 1;
+    throw 'validation_error', 'The topic is locked and editing posts is disabled.' if $locked == 1;
     
     # Print the forum node
     print qq~\t<forums action="edit_post" post_id="$post_id" thread_id="$thread_id" forum_id="$forum_id" subject_length="$config{'max_subject_length'}" post_length="$config{'max_post_length'}">\n~;
@@ -989,7 +1061,7 @@ sub edit_post {
             push @errors, 'Post body is too long. Maximum of '. $config{'max_post_length'} .' characters allowed.' if length $INPUT{'body'} > $config{'max_post_length'};
                       
             # Post body bbcode
-            try { $body_xhtml = xml::bbcode($INPUT{'body'}) } catch 'validation_error', with { push @errors, 'Message contains incorrect bbCode. '. shift; abort(1); } if $bbcode == 0; 
+            try { $body_xhtml = xml::bbcode($body) } catch 'validation_error', with { push @errors, 'Message contains incorrect bbCode. '. shift; abort(1); } if $bbcode == 0; 
             
             # Edit reason
             push @errors, 'Edit reason is too long. Maximum of '. $config{'max_subject_length'} .' characters allowed.' if length $INPUT{'reason'} > $config{'max_subject_length'};
@@ -1002,7 +1074,13 @@ sub edit_post {
         if ($success and $INPUT{'save'}) {
             
             # Ipdate the post table
-            $DB->query("UPDATE ${module_db_prefix}posts SET title = ?, body = ?, disable_signature = ?, disable_smiles = ?, disable_bbcode = ?, edit_user = ?, edit_reason = ?, edit_date = ?, edit_count = edit_count + 1 WHERE id = ? LIMIT 1", $subject, $body, $signature, $smiles, $bbcode, $USER{'name'}, $edit_reason, $gmtime, $post_id);
+            $DB->query(
+                "UPDATE ${module_db_prefix}posts 
+                SET title = ?, body = ?, disable_signature = ?, disable_smiles = ?, disable_bbcode = ?, edit_user = ?, edit_reason = ?, edit_date = ?, edit_count = edit_count + 1 
+                WHERE id = ? 
+                LIMIT 1", 
+                $subject, $body, $signature, $smiles, $bbcode, $USER{'name'}, $edit_reason, $gmtime, $post_id
+            );
             
             # If the post is the thread's opening post, update the title if it changed
             $DB->query("UPDATE ${module_db_prefix}threads SET title = ? WHERE id = ? LIMIT 1", $subject, $thread_id) if $op_id == $post_id and $subject ne $thread_title;
@@ -1062,7 +1140,13 @@ sub delete_post {
     style::include_template('delete_post');
     
     # Get the post by id if it exists or error
-    my $query = $DB->query("SELECT title, thread_id, author_id, author_name, body, date, disable_signature, disable_smiles, disable_bbcode FROM ${module_db_prefix}posts WHERE id = ? LIMIT 1", $post_id);
+    my $query = $DB->query(
+        "SELECT title, thread_id, author_id, author_name, body, date, disable_signature, disable_smiles, disable_bbcode 
+        FROM ${module_db_prefix}posts 
+        WHERE id = ? 
+        LIMIT 1", 
+        $post_id
+    );
     throw 'request_404' if $query->rows() == 0;
     my ($post_title, $thread_id, $post_author_id, $post_author_name, $body, $post_date, $signature, $smiles, $bbcode) = @{$query->fetchrow_arrayref()};
 
@@ -1075,7 +1159,13 @@ sub delete_post {
     }
 
     # Get the thread by id if it exists or error
-    $query = $DB->query("SELECT title, forum_id, post_id, author_id, author_name, replies, sticky, locked FROM ${module_db_prefix}threads WHERE id = ? LIMIT 1", $thread_id);
+    $query = $DB->query(
+        "SELECT title, forum_id, post_id, author_id, author_name, replies, sticky, locked 
+        FROM ${module_db_prefix}threads 
+        WHERE id = ? 
+        LIMIT 1", 
+        $thread_id
+    );
     throw 'request_404' if $query->rows() == 0;
     my ($thread_title, $forum_id, $op_id, $thread_author_id, $thread_author_name, $replies, $sticky, $locked) = @{$query->fetchrow_arrayref()};
 
@@ -1340,7 +1430,13 @@ sub _cache_forums {
     while ( my $forum = $query->fetchrow_hashref() ) {
         
         # The last post data
-        my $query = $DB->query("SELECT lastpost_date, lastpost_author, lastpost_id, title FROM ${module_db_prefix}threads WHERE forum_id = ? ORDER BY lastpost_date DESC LIMIT 1", $forum->{'id'});
+        my $query = $DB->query(
+            "SELECT lastpost_date, lastpost_author, lastpost_id, title 
+            FROM ${module_db_prefix}threads 
+            WHERE forum_id = ? 
+            ORDER BY lastpost_date DESC LIMIT 1", 
+            $forum->{'id'}
+        );
         ($forum->{'lastpost_date'}, $forum->{'lastpost_author'}, $forum->{'lastpost_id'}, $forum->{'lastpost_title'}) = @{$query->fetchrow_arrayref()};
 
         # Everything else
@@ -1374,7 +1470,12 @@ sub _user_activity {
     my $sql_values;
     $sql_values = defined $id ? "'". $id ."'" : "NULL";
     $sql_values .= defined $title ? ", '". $title ."'" : ", NULL";
-    $DB->query("INSERT INTO ${module_db_prefix}activity (date, type, id, title, user_name, user_id) VALUES (?, ?, $sql_values, ?, ?) ON DUPLICATE KEY UPDATE $sql_set", datetime::gmtime, $type, $username, $USER{'id'});
+    $DB->query(
+        "INSERT INTO ${module_db_prefix}activity (date, type, id, title, user_name, user_id) 
+        VALUES (?, ?, $sql_values, ?, ?) 
+        ON DUPLICATE KEY UPDATE $sql_set", 
+        datetime::gmtime, $type, $username, $USER{'id'}
+    );
     
     # Get the current active users
     my $current_time = datetime::gmtime() - 300;
@@ -1439,14 +1540,15 @@ sub _new_reply_notify {
     if ($thread_id != 0) {
         
         # Retrieve the users to be notified for this thread
-        $query = $DB->query("
-            SELECT ${module_db_prefix}notify.user_id, ${module_db_prefix}notify.last_ntime, users.name, users.email, users.date_format, ${module_db_prefix}activity.date 
+        $query = $DB->query(
+            "SELECT ${module_db_prefix}notify.user_id, ${module_db_prefix}notify.last_ntime, users.name, users.email, users.date_format, ${module_db_prefix}activity.date 
             FROM ${module_db_prefix}notify, users, ${module_db_prefix}activity 
-            WHERE ${module_db_prefix}notify.thread_id = ? and users.id = ${module_db_prefix}notify.user_id and ${module_db_prefix}activity.user = users.name"
-        , $thread_id);
+            WHERE ${module_db_prefix}notify.thread_id = ? and users.id = ${module_db_prefix}notify.user_id and ${module_db_prefix}activity.user = users.name", 
+            $thread_id
+        );
         
         # Set the notification time to avoid duplicate notifications later
-        $DB->query("UPDATE ${module_db_prefix}notify SET last_ntime = ? WHERE thread_id = ?", datetime::gmtime, $thread_id);
+        $DB->query("UPDATE ${module_db_prefix}notify SET last_ntime = ? WHERE thread_id = ?", datetime::gmtime(), $thread_id);
         
         while ( my $notice = $query->fetchrow_arrayref() ) {
             my ($user_id, $last_ntime, $user_name, $email, $date_format, $last_atime) = @{$notice};

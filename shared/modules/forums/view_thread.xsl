@@ -89,10 +89,14 @@
 					<div class="author">
 						<div class="name"><a href="{/oyster/@base}user/{@author_name}/"><xsl:value-of select="@author_name" /></a></div>
 						<div class="title"><xsl:value-of select="@author_title" /></div>
+						<!-- TODO PENDING PROFILES
 						<img class="avatar" src="{@author_avatar}" alt="Avatar" />
+						-->
+						<img class="avatar" src="http://janpingel.com/misc/forums/avatars/random/avatar.jpeg" alt="Avatar" />
+						
 						<div class="posts"><a href=""><xsl:value-of select="@author_posts" /></a> posts</div>
 						<div class="age"><xsl:value-of select="@author_registered" /></div>
-						<div class="location"><xsl:value-of select="@author_location" /></div>
+						<div class="location"><xsl:value-of select="@author_location" /></div>						
 					</div>
 				</div>	
 				<hr />

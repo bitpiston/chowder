@@ -88,7 +88,7 @@ $revision[1]{'up'}{'site'} = sub {
       `type` varchar(32) NOT NULL,
       `id` int(11) default NULL,
       `title` text,
-      `user_name` varchar(32) NOT NULL,
+      `user_name` varchar(64) NOT NULL,
       `user_id` int(11) default NULL,
       UNIQUE KEY `user_name` (`user_name`)
       ) ENGINE=MyISAM DEFAULT CHARSET=latin1~);
