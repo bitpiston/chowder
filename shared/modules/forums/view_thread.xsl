@@ -30,7 +30,7 @@
 			</xsl:if>
 			<xsl:choose>
 				<xsl:when test="/oyster/forums//thread[@id = /oyster/forums/@thread_id]/@locked = 1">
-					<div class="locked">Thread locked</div>
+					<div class="locked">Topic locked</div>
 				</xsl:when>
 				<xsl:otherwise>
 					<div class="add post"><a href="{/oyster/@url}?a=reply">Reply</a></div>
@@ -54,13 +54,15 @@
 						</div>
 						<xsl:if test="@edit_count != 0 and string-length(@edit_ctime) != 0">
 							<div class="edit">
-								Edited by <xsl:value-of select="@edit_user" /> on 
-								<xsl:call-template name="date">
-									<xsl:with-param name="time" select="@edit_ctime" />
-									<xsl:with-param name="date_format" select="/oyster/user/@date_format" />
-								</xsl:call-template>
+								<span>
+									Edited by <xsl:value-of select="@edit_user" /> on 
+									<xsl:call-template name="date">
+										<xsl:with-param name="time" select="@edit_ctime" />
+										<xsl:with-param name="date_format" select="/oyster/user/@date_format" />
+									</xsl:call-template>
+								</span>
 								<xsl:if test="string-length(@edit_reason) != 0">
-									<br />Reason: <xsl:value-of select="@edit_reason" />
+									<br /><span>Reason: <xsl:value-of select="@edit_reason" /></span>
 								</xsl:if>
 							</div>
 						</xsl:if>
@@ -114,7 +116,7 @@
 			</xsl:if>
 			<xsl:choose>
 				<xsl:when test="/oyster/forums//thread[@id = /oyster/forums/@thread_id]/@locked = 1">
-					<div class="locked">Thread locked</div>
+					<div class="locked">Topic locked</div>
 				</xsl:when>
 				<xsl:otherwise>
 					<div class="add post"><a href="{/oyster/@url}?a=reply">Reply</a></div>
@@ -125,13 +127,13 @@
 			<div class="advanced_options posts">
 				<strong>Options for this topic:</strong><br /><!-- do me -->
 				<dl>
-					<dt><a href="{/oyster/@url}?a=ignore&amp;s=1">Ignore this thread</a> | <a href="{/oyster/@url}?a=hide&amp;s=0">Reset ignore state</a></dt>
-					<dd>Do not list this thread in the unread threads search. You are currently not ignoring this thread.</dd>
-					<dt><a href="{/oyster/@url}?a=hide&amp;s=1">Hide this thread</a> | <a href="{/oyster/@url}?a=hide&amp;s=0">Reset hide state</a></dt>
-					<dd>Hidden threads are not displayed in the threads list. This thread is currently not hidden.</dd>
+					<dt><a href="{/oyster/@url}?a=ignore&amp;s=1">Ignore this topic</a> | <a href="{/oyster/@url}?a=hide&amp;s=0">Reset ignore state</a></dt>
+					<dd>Do not list this thread in the unread topics search. You are currently not ignoring this topic.</dd>
+					<dt><a href="{/oyster/@url}?a=hide&amp;s=1">Hide this topic</a> | <a href="{/oyster/@url}?a=hide&amp;s=0">Reset hide state</a></dt>
+					<dd>Hidden threads are not displayed in the topics list. This topic is currently not hidden.</dd>
 				</dl>
 				<ul>
-					<li class="notify"><a href="{/oyster/@url}?a=watch&amp;s=1">Watch thread</a> (e-mail notification)</li>
+					<li class="notify"><a href="{/oyster/@url}?a=watch&amp;s=1">Watch topic</a> (e-mail notification)</li>
 					<!--
 					<li class="bookmark"><a href="">Add bookmark</a> | <a href="">Show all</a></li>
 					<xsl:if test="/oyster/user/permissions/@forums_lock = 1">
@@ -142,32 +144,34 @@
 					</xsl:if>
 					-->				
 					<xsl:if test="@mypost = 1 or /oyster/user/permissions/@forums_create_threads = 1">
-						<li class="edit"><a href="{/oyster/@url}?a=edit">Edit thread</a></li>
+						<li class="edit"><a href="{/oyster/@url}?a=edit">Edit topic</a></li>
 					</xsl:if>
 					<xsl:if test="/oyster/user/permissions/@forums_split = 1">
-						<li class="split"><a href="{/oyster/@url}?a=split">Split thread</a></li>
+						<li class="split"><a href="{/oyster/@url}?a=split">Split topic</a></li>
 					</xsl:if>
 					<xsl:if test="/oyster/user/permissions/@forums_delete_threads = 2">
-						<li class="delete"><a href="{/oyster/@url}?a=delete">Delete thread</a></li>
+						<li class="delete"><a href="{/oyster/@url}?a=delete">Delete topic</a></li>
 					</xsl:if>
 				</ul>
 			</div>
 		</xsl:if>
-		<div class="online_forum_data">
-			<p>
-				<strong><xsl:value-of select="activity-current/@users" /></strong> user<xsl:choose>
-					<xsl:when test="activity-current/@users != 1">s are</xsl:when>
-					<xsl:otherwise> is</xsl:otherwise>
-				</xsl:choose> reading this thread<xsl:if test="activity-current/@users != 0">: </xsl:if> 
-				<xsl:call-template name="split">
-					<xsl:with-param name="to-be-split" select="activity-current/@usernames" />
-					<xsl:with-param name="delimiter" select="','" />
-				</xsl:call-template>
-				<xsl:if test="activity-current/@guests != 0">
-					 and <strong><xsl:value-of select="activity-current/@guests" /></strong> guest<xsl:if test="activity-current/@guests != 1">s</xsl:if>
-				</xsl:if>
-			</p>
-		</div>
+		<xsl:if test="activity-current">
+			<div class="online_forum_data">
+				<p>
+					<strong><xsl:value-of select="activity-current/@users" /></strong> user<xsl:choose>
+						<xsl:when test="activity-current/@users != 1">s are</xsl:when>
+						<xsl:otherwise> is</xsl:otherwise>
+					</xsl:choose> reading this thread<xsl:if test="activity-current/@users != 0">: </xsl:if> 
+					<xsl:call-template name="split">
+						<xsl:with-param name="to-be-split" select="activity-current/@usernames" />
+						<xsl:with-param name="delimiter" select="','" />
+					</xsl:call-template>
+					<xsl:if test="activity-current/@guests != 0">
+						 and <strong><xsl:value-of select="activity-current/@guests" /></strong> guest<xsl:if test="activity-current/@guests != 1">s</xsl:if>
+					</xsl:if>
+				</p>
+			</div>
+		</xsl:if>
 	</xsl:template>
 	
 	

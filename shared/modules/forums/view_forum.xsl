@@ -40,7 +40,7 @@
 						</xsl:call-template>
 					</span>
 				</xsl:if>
-				<div class="add thread"><a href="{/oyster/@url}?a=create">New thread</a></div>
+				<div class="add thread"><a href="{/oyster/@url}?a=create">New topic</a></div>
 			</div>
 			<div class="all_threads_container">
 				<xsl:for-each select="/oyster/forums//forum[@id = /oyster/forums/@forum_id]/thread">
@@ -61,7 +61,7 @@
 									<xsl:if test="@new = 1 and @locked != 1">_new</xsl:if><!-- do me -->
 								</xsl:if>
 							</xsl:variable>
-							<h3 xml:space="preserve"><xsl:if test="@moved = 1"><strong>Moved: </strong></xsl:if><a href="{/oyster/@base}forums/thread/{@id}/"><span class="icon"><img src="{/oyster/@styles}{/oyster/@style}/images/thread{$url}.png" alt="" /> </span><xsl:value-of select="@title" /></a> <xsl:if test="@sticky = 1"><em>(Important)</em></xsl:if></h3>		
+							<h3 xml:space="preserve"><xsl:if test="@moved = 1"><strong>Moved: </strong></xsl:if><a href="{/oyster/@base}forums/thread/{@id}/"><span class="icon"><img src="{/oyster/@styles}{/oyster/@style}/images/thread{$url}.png" alt="" /> </span><xsl:value-of select="@title" /></a> <xsl:if test="@sticky = 1"><em>(Important)</em></xsl:if> <xsl:if test="@locked = 1"><em>(Locked)</em></xsl:if></h3>		
 							<xsl:if test="@moved = 1"><div class="forum">Forum: <a href="{/oyster/@base}forums/forum/{@moved_from_id}/"><xsl:value-of select="@moved_from_name" /></a></div></xsl:if>	
 							<xsl:if test="@pages > 1 and not(@moved)">
 								<span class="page"><small>Page:</small> 
@@ -109,29 +109,31 @@
 						</xsl:call-template>
 					</span>
 				</xsl:if>
-				<div class="add thread"><a href="{/oyster/@url}?a=create">New thread</a></div>
+				<div class="add thread"><a href="{/oyster/@url}?a=create">New topic</a></div>
 			</div>
 		</xsl:if>
-		<div class="online_forum_data">
-			<p>
-				<strong><xsl:value-of select="activity-current/@users" /></strong> user<xsl:choose>
-					<xsl:when test="activity-current/@users != 1">s are</xsl:when>
-					<xsl:otherwise> is</xsl:otherwise>
-				</xsl:choose> browsing this forum<xsl:if test="activity-current/@users != 0">: </xsl:if>  
-				<xsl:call-template name="split">
-					<xsl:with-param name="to-be-split" select="activity-current/@usernames" />
-					<xsl:with-param name="delimiter" select="','" />
-				</xsl:call-template>
-				<xsl:if test="activity-current/@guests != 0">
-					 and <strong><xsl:value-of select="activity-current/@guests" /></strong> guest<xsl:if test="activity-current/@guests != 1">s</xsl:if>.
-				</xsl:if>
-			</p>
-		</div>
+		<xsl:if test="activity-current">
+			<div class="online_forum_data">
+				<p>
+					<strong><xsl:value-of select="activity-current/@users" /></strong> user<xsl:choose>
+						<xsl:when test="activity-current/@users != 1">s are</xsl:when>
+						<xsl:otherwise> is</xsl:otherwise>
+					</xsl:choose> browsing this forum<xsl:if test="activity-current/@users != 0">: </xsl:if>  
+					<xsl:call-template name="split">
+						<xsl:with-param name="to-be-split" select="activity-current/@usernames" />
+						<xsl:with-param name="delimiter" select="','" />
+					</xsl:call-template>
+					<xsl:if test="activity-current/@guests != 0">
+						 and <strong><xsl:value-of select="activity-current/@guests" /></strong> guest<xsl:if test="activity-current/@guests != 1">s</xsl:if>.
+					</xsl:if>
+				</p>
+			</div>
+		</xsl:if>
 		<ul class="icons_legend">
 			<li><img src="{/oyster/@styles}{/oyster/@style}/images/thread_new.png" alt="" /> New posts</li>
 			<li><img src="{/oyster/@styles}{/oyster/@style}/images/thread_mine.png" alt="" /> My posts</li>
-			<li><img src="{/oyster/@styles}{/oyster/@style}/images/thread_hot.png" alt="" /> Popular thread</li>
-			<li><img src="{/oyster/@styles}{/oyster/@style}/images/thread_sticky.png" alt="" /> Important thread</li>
-			<li><img src="{/oyster/@styles}{/oyster/@style}/images/thread_lock.png" alt="" /> Locked thread</li>		
+			<li><img src="{/oyster/@styles}{/oyster/@style}/images/thread_hot.png" alt="" /> Popular topic</li>
+			<li><img src="{/oyster/@styles}{/oyster/@style}/images/thread_sticky.png" alt="" /> Important topic</li>
+			<li><img src="{/oyster/@styles}{/oyster/@style}/images/thread_lock.png" alt="" /> Locked topic</li>		
 		</ul>
 	</xsl:template>

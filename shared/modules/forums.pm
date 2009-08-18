@@ -7,13 +7,13 @@
         Work in progress.
     </warning>
     <todo>
-        Add support for parsing smileys, disable smiles option
-    </todo>
-    <todo>
-        Disable bbcode should still generate new lines and paragraphs
+        bbcode should turn urls into links
     </todo>
     <todo>
         Unread/new threads/posts
+    </todo>
+    <todo>
+        Hide/ignore threads
     </todo>
     <todo>
         Confirmation redirects
@@ -44,7 +44,7 @@ use exceptions;
 use user;
 
 our %forums;
-our $new_reply_notify;
+my $new_reply_notify;
 
 =xml
     <function name="hook_load">
@@ -162,9 +162,6 @@ sub view_forum {
     user::require_permission('forums_view');
     user::print_module_permissions('forums');    
 
-    # Error if the forum id is not numeric
-    #throw 'validation_error', 'Invalid forum requested. Forum must be numeric.' unless string::is_numeric($forum_id);
-    
     # Get the forum by id if it exists or error
     throw 'request_404' if !exists $forums{ $forum_id };
     my ($forum_title, $forum_description, $forum_parent) = ($forums{ $forum_id }->{'name'}, $forums{ $forum_id }->{'description'}, $forums{ $forum_id }->{'parent_id'});
@@ -278,9 +275,6 @@ sub view_thread {
     user::require_permission('forums_view');
     user::print_module_permissions('forums');
     
-    # Error if the thread id is not numeric
-    #throw 'validation_error', 'Invalid thread requested. Thread must be numeric.' unless string::is_numeric($thread_id);
-    
     # Goto actions
     goto &create_post if $INPUT{'a'} eq "reply";
     goto &edit_thread if $INPUT{'a'} eq "edit";
@@ -366,7 +360,8 @@ sub view_thread {
     # Print the posts
     my $post_number = defined $page ? $limit_from : 0;
     for my $post (@posts) {
-        my $body        = $post->[14] == 1 ? $post->[5] : xml::bbcode($post->[5]);              # Transform post body to xhtml unless disabled
+        my $body        = $post->[14] == 1 ? xml::bbcode($post->[5], 'disabled_tags' => \%xml::bbcode) : xml::bbcode($post->[5]); # Transform post body to xhtml
+        $body           = xml::smiles($body) unless $post->[13] == 1;
         my $post_ctime  = datetime::from_unixtime($post->[6]);                                  # Post date
         my $edit_ctime  = datetime::from_unixtime($post->[9]) if defined $post->[9];            # Edit date
         my $signature   = xml::bbcode($authors{ $post->[3] }->[5]) unless $post->[12] == 1;     # Signature unless disalbed
@@ -381,22 +376,24 @@ sub view_thread {
     # Close the thread, forum and parent nodes
     print "\t\t$indent</thread>\n\t$indent</forum>\n". $closing_nodes;
     
-    # Close the forums node
-    print "\t</forums>\n";
-    
-    # increment thread views and ignore users browsing the thread
-    my $time = datetime::gmtime() - 300; # 10 minutes
-    $query = $DB->query(
-        "SELECT user_name 
-        FROM ${module_db_prefix}activity 
-        WHERE type = 'thread' AND id = $thread_id AND date > $time AND user_id = $USER{id} 
-        ORDER BY date DESC 
-        LIMIT 1"
-    );
-    $DB->query("UPDATE ${module_db_prefix}threads SET views = views + 1 WHERE id = ? LIMIT 1", $thread_id) unless $query->rows();
-    
+    # Increment thread views and ignore users browsing the thread unless the forum is read-only
+    if ($config{'read_only'} == 0) {
+        my $time = datetime::gmtime() - 300; # 10 minutes
+        $query = $DB->query(
+            "SELECT user_name 
+            FROM ${module_db_prefix}activity 
+            WHERE type = 'thread' AND id = $thread_id AND date > $time AND user_id = $USER{id} 
+            ORDER BY date DESC 
+            LIMIT 1"
+        );
+        $DB->query("UPDATE ${module_db_prefix}threads SET views = views + 1 WHERE id = ? LIMIT 1", $thread_id) unless $query->rows();
+    }
+
     # Users activity
     _user_activity('thread', --$depth, $thread_id, $thread_title);
+    
+    # Close the forums node
+    print "\t</forums>\n";
 }
 
 =xml
@@ -413,9 +410,6 @@ sub view_post {
     user::require_permission('forums_view');
     user::print_module_permissions('forums');
     
-    # Error if the post id is not numeric
-    #throw 'validation_error', 'Invalid post requested. Post must be numeric.'  unless string::is_numeric($post_id);
-
     # Goto actions
     goto &edit_post if $INPUT{'a'} eq "edit";
     goto &delete_post if $INPUT{'a'} eq "delete";
@@ -463,6 +457,9 @@ sub create_thread {
     user::require_permission('forums_create_posts');
     style::include_template('create_thread');
     
+    # Check to make sure the forums are not read-only
+    throw 'validation_error', 'The forums are currently locked and read-only for maintenance. Please try again later.' if $config{'read_only'} == 1;
+    
     # Print the forum node
     print qq~\t<forums action="create_thread" forum_id="$forum_id" subject_length="$config{'max_subject_length'}" post_length="$config{'max_post_length'}">\n~;
 
@@ -509,7 +506,7 @@ sub create_thread {
             push @errors, 'Post body is too long. Maximum of '. $config{'max_post_length'} .' characters allowed.' if length $INPUT{'body'} > $config{'max_post_length'};
                       
             # Post body bbcode
-            try { $body_xhtml = xml::bbcode($body) } catch 'validation_error', with { push @errors, 'Message contains incorrect bbCode. '. shift; abort(1); } if $bbcode == 0; 
+            try { $body_xhtml = $bbcode == 1 ? xml::bbcode($body, 'disabled_tags' => \%xml::bbcode) : xml::bbcode($body) } catch 'validation_error', with { push @errors, 'Message contains incorrect bbCode. '. shift; abort(1); }; 
             
             # Throw errors if any
             throw 'validation_error' => @errors if @errors > 0;
@@ -518,7 +515,6 @@ sub create_thread {
         # If validation fails or previewing
         if (!$success or $INPUT{'preview'}) {
             my $signature_xhtml = xml::bbcode($USER{'signature'}) if $signature == 0;
-            $body_xhtml = $body if $bbcode == 1;
                     
             print qq~\t\t$indent<post title="$subject" author_id="$USER{'id'}" author_name="$USER{'name'}" author_title="$PERMISSIONS{'name'}" author_posts="$USER{'posts'}" author_registered="$USER{'registered'}" author_avatar="$USER{'avatar'}" ctime="$ctime" notify="$notify" sticky="$sticky" locked="$locked" signature="$signature" smiles="$smiles" bbcode="$bbcode">\n~;
             print qq~\t\t\t$indent<body>\n~;
@@ -589,6 +585,9 @@ sub edit_thread {
     
     user::require_permission('forums_edit_threads');
     style::include_template('edit_thread');
+    
+    # Check to make sure the forums are not read-only
+    throw 'validation_error', 'The forums are currently locked and read-only for maintenance. Please try again later.' if $config{'read_only'} == 1;
     
     # Get the thread by id if it exists or error
     my $query = $DB->query(
@@ -710,6 +709,9 @@ sub delete_thread {
     user::require_permission('forums_delete_threads', 2);
     style::include_template('delete_thread');
     
+    # Check to make sure the forums are not read-only
+    throw 'validation_error', 'The forums are currently locked and read-only for maintenance. Please try again later.' if $config{'read_only'} == 1;
+    
     # Get the thread by id if it exists or error
     my $query = $DB->query(
         "SELECT title, forum_id, post_id, author_id, author_name, replies, sticky, locked 
@@ -785,6 +787,9 @@ sub create_post {
     
     user::require_permission('forums_create_posts');
     style::include_template('create_post');
+    
+    # Check to make sure the forums are not read-only
+    throw 'validation_error', 'The forums are currently locked and read-only for maintenance. Please try again later.' if $config{'read_only'} == 1;
     
     # Get the thread by id if it exists or error
     my $query = $DB->query(
@@ -878,7 +883,7 @@ sub create_post {
             push @errors, 'Post body is too long. Maximum of '. $config{'max_post_length'} .' characters allowed.' if length $INPUT{'body'} > $config{'max_post_length'};
                       
             # Post body bbcode
-            try { $body_xhtml = xml::bbcode($body) } catch 'validation_error', with { push @errors, 'Message contains incorrect bbCode. '. shift; abort(1); } if $bbcode == 0; 
+            try { $body_xhtml = $bbcode == 1 ? xml::bbcode($body, 'disabled_tags' => \%xml::bbcode) : xml::bbcode($body) } catch 'validation_error', with { push @errors, 'Message contains incorrect bbCode. '. shift; abort(1); }; 
             
             # Throw errors if any
             throw 'validation_error' => @errors if @errors > 0;
@@ -968,6 +973,9 @@ sub edit_post {
     user::print_module_permissions('forums');
     style::include_template('edit_post');
     
+    # Check to make sure the forums are not read-only
+    throw 'validation_error', 'The forums are currently locked and read-only for maintenance. Please try again later.' if $config{'read_only'} == 1;
+    
     # Get the post by id if it exists or error
     my $query = $DB->query(
         "SELECT title, thread_id, author_id, author_name, body, date, disable_signature, disable_smiles, disable_bbcode 
@@ -1049,10 +1057,10 @@ sub edit_post {
             my @errors;
             
             # Subject min-length
-            push @errors, 'Subject is too short. Minimum of '. $config{'min_subject_length'} .' characters required.' if length $INPUT{'subject'} < $config{'min_subject_length'};
+            push @errors, 'Subject is too short. Minimum of '. $config{'min_subject_length'} .' characters required.' if length $INPUT{'subject'} < $config{'min_subject_length'} and $INPUT{'subject'} ne '';
                         
             # Subject max-length
-            push @errors, 'Subject is too long. Maximum of '. $config{'max_subject_length'} .' characters allowed.' if length $INPUT{'subject'} > $config{'max_subject_length'};
+            push @errors, 'Subject is too long. Maximum of '. $config{'max_subject_length'} .' characters allowed.' if length $INPUT{'subject'} > $config{'max_subject_length'} and $INPUT{'subject'} ne '';
             
             # Post body min-length
             push @errors, 'Post body is too short. Minimum of '. $config{'min_post_length'} .' characters required.' if length $INPUT{'body'} < $config{'min_post_length'};
@@ -1061,7 +1069,7 @@ sub edit_post {
             push @errors, 'Post body is too long. Maximum of '. $config{'max_post_length'} .' characters allowed.' if length $INPUT{'body'} > $config{'max_post_length'};
                       
             # Post body bbcode
-            try { $body_xhtml = xml::bbcode($body) } catch 'validation_error', with { push @errors, 'Message contains incorrect bbCode. '. shift; abort(1); } if $bbcode == 0; 
+            try { $body_xhtml = $bbcode == 1 ? xml::bbcode($body, 'disabled_tags' => \%xml::bbcode) : xml::bbcode($body) } catch 'validation_error', with { push @errors, 'Message contains incorrect bbCode. '. shift; abort(1); }; 
             
             # Edit reason
             push @errors, 'Edit reason is too long. Maximum of '. $config{'max_subject_length'} .' characters allowed.' if length $INPUT{'reason'} > $config{'max_subject_length'};
@@ -1138,6 +1146,9 @@ sub delete_post {
     user::require_permission('forums_view');
     user::print_module_permissions('forums');
     style::include_template('delete_post');
+    
+    # Check to make sure the forums are not read-only
+    throw 'validation_error', 'The forums are currently locked and read-only for maintenance. Please try again later.' if $config{'read_only'} == 1;
     
     # Get the post by id if it exists or error
     my $query = $DB->query(
@@ -1459,63 +1470,71 @@ sub _user_activity {
     $depth  = 0 unless defined $depth;
     my $indent = "\t" x $depth;
     
-    # Log the users activity
-    my $sql_set = "date = '". datetime::gmtime() ."', type = '". $type ."'";
-    $sql_set .= defined $id ? ", id = '". $id ."'" : ", id = NULL";
-    $sql_set .= defined $title ? ", title = '". $title ."'" : ", title = NULL";
-    my $username = $USER{'name'};
-    $username .= "-". $USER{'session'} if $USER{'id'} == 0;
+    # Check to make sure the forums are not read-only
+    if ($config{'read_only'} == 0) {
     
-    # Update or insert a new row for the users activity
-    my $sql_values;
-    $sql_values = defined $id ? "'". $id ."'" : "NULL";
-    $sql_values .= defined $title ? ", '". $title ."'" : ", NULL";
-    $DB->query(
-        "INSERT INTO ${module_db_prefix}activity (date, type, id, title, user_name, user_id) 
-        VALUES (?, ?, $sql_values, ?, ?) 
-        ON DUPLICATE KEY UPDATE $sql_set", 
-        datetime::gmtime, $type, $username, $USER{'id'}
-    );
+        # Log the users activity
+        my $sql_set = "date = '". datetime::gmtime() ."', type = '". $type ."'";
+        $sql_set .= defined $id ? ", id = '". $id ."'" : ", id = NULL";
+        $sql_set .= defined $title ? ", title = '". $title ."'" : ", title = NULL";
+        my $username = $USER{'name'};
+        $username .= "-". $USER{'session'} if $USER{'id'} == 0;
     
-    # Get the current active users
-    my $current_time = datetime::gmtime() - 300;
-    my $current_where = "date > ". $current_time;
-    $current_where .= " and type = '". $type ."'" unless $type eq "overview";
-    $current_where .= " and id = ". $id if defined $id;
-    $query = $DB->query("SELECT user_name FROM ${module_db_prefix}activity WHERE $current_where ORDER BY date DESC");
-    
-    # Prepare a list of the current active users and count guests + users
-    my $current_guests = 0;
-    my @current_users;
-    while ( my $user = $query->fetchrow_arrayref() ) {
-        ++$current_guests if $user->[0] =~ /^Guest(.*)?/;
-        push @current_users, $user->[0] unless $user->[0] =~ /^Guest(.*)?/;
+        # Update or insert a new row for the users activity
+        my $sql_values;
+        $sql_values = defined $id ? "'". $id ."'" : "NULL";
+        $sql_values .= defined $title ? ", '". $title ."'" : ", NULL";
+        $DB->query(
+            "INSERT INTO ${module_db_prefix}activity (date, type, id, title, user_name, user_id) 
+            VALUES (?, ?, $sql_values, ?, ?) 
+            ON DUPLICATE KEY UPDATE $sql_set", 
+            datetime::gmtime, $type, $username, $USER{'id'}
+        );
     }
-    my $current_usernames = join ', ', @current_users;
-    my $current_users = scalar @current_users;
     
-    # Print the current active users 
-    print qq~\t\t$indent<activity-current usernames="$current_usernames" users="$current_users" guests="$current_guests" />\n~;
-    
-    # For the overview do the same as above for the entire day
-    if ($type eq "overview") {
-        
-        # Get todays active users
-        my $todays_time = datetime::gmtime() - 86400;
-        $query = $DB->query("SELECT user_name FROM ${module_db_prefix}activity WHERE date > $todays_time ORDER BY date DESC");
-    
-        # Prepare a list of all of todays for the overview
-        my $todays_guests = 0;
-        my @todays_users;
+    # Check to make sure showing online users is enabled
+    if ($config{'show_online_users'} == 1) {
+      
+        # Get the current active users
+        my $current_time = datetime::gmtime() - 300;
+        my $current_where = "date > ". $current_time;
+        $current_where .= " and type = '". $type ."'" unless $type eq "overview";
+        $current_where .= " and id = ". $id if defined $id;
+        $query = $DB->query("SELECT user_name FROM ${module_db_prefix}activity WHERE $current_where ORDER BY date DESC");
+
+        # Prepare a list of the current active users and count guests + users
+        my $current_guests = 0;
+        my @current_users;
         while ( my $user = $query->fetchrow_arrayref() ) {
-            ++$todays_guests if $user->[0] =~ /^Guest(.*)?/;
-            push @todays_users, $user->[0] unless $user->[0] =~ /^Guest(.*)?/;
+            ++$current_guests if $user->[0] =~ /^Guest(.*)?/;
+            push @current_users, $user->[0] unless $user->[0] =~ /^Guest(.*)?/;
         }
-        my $todays_usernames = join ', ', @todays_users;
-        my $todays_users = scalar @todays_users;
-        
-        # Print today's active users
-        print qq~\t\t$indent<activity-todays usernames="$todays_usernames" users="$todays_users" guests="$todays_guests" />\n~;        
+        my $current_usernames = join ', ', @current_users;
+        my $current_users = scalar @current_users;
+
+        # Print the current active users 
+        print qq~\t\t$indent<activity-current usernames="$current_usernames" users="$current_users" guests="$current_guests" />\n~;
+
+        # For the overview do the same as above for the entire day
+        if ($type eq "overview") {
+
+            # Get todays active users
+            my $todays_time = datetime::gmtime() - 86400;
+            $query = $DB->query("SELECT user_name FROM ${module_db_prefix}activity WHERE date > $todays_time ORDER BY date DESC");
+
+            # Prepare a list of all of todays for the overview
+            my $todays_guests = 0;
+            my @todays_users;
+            while ( my $user = $query->fetchrow_arrayref() ) {
+                ++$todays_guests if $user->[0] =~ /^Guest(.*)?/;
+                push @todays_users, $user->[0] unless $user->[0] =~ /^Guest(.*)?/;
+            }
+            my $todays_usernames = join ', ', @todays_users;
+            my $todays_users = scalar @todays_users;
+
+            # Print today's active users
+            print qq~\t\t$indent<activity-todays usernames="$todays_usernames" users="$todays_users" guests="$todays_guests" />\n~;        
+        }  
     }
 }
 

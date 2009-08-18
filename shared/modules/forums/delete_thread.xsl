@@ -1,4 +1,4 @@
-	<xsl:template match="/oyster/forums[@action = 'delete_thread']" mode="title">Delete Thread</xsl:template>
+	<xsl:template match="/oyster/forums[@action = 'delete_thread']" mode="title">Delete Topic</xsl:template>
 	<xsl:template match="/oyster/forums[@action = 'delete_thread']" mode="heading"><xsl:value-of select="/oyster/forums//thread/@title" /></xsl:template>
 	<xsl:template match="/oyster/forums[@action = 'delete_thread']" mode="description" xml:space="preserve">
 		<div class="path">Forum: <a href="{/oyster/@base}forums/">Overview</a> 
@@ -23,7 +23,7 @@
 		<xsl:if test="not(/oyster/forums//confirmation)">
 			<form class="compose_container" id="posteditor_form" action="{/oyster/@url}?a=delete" method="post">
 				<strong>Delete thread:</strong><br />
-				<p>This action cannot be undone, are you sure you want to delete the thread?</p>
+				<p>This action cannot be undone, are you sure you want to delete the topic?</p>
 				<div class="submit_container">
 					<input type="submit" name="save" id="save" value="Confirm delete" />
 					<input type="reset" name="cancel" id="cancel" value="Cancel" onclick="history.back()" />

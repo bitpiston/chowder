@@ -1,8 +1,8 @@
-	<xsl:template match="/oyster/forums[@action = 'create_thread']" mode="title">New Thread</xsl:template>
+	<xsl:template match="/oyster/forums[@action = 'create_thread']" mode="title">New Topic</xsl:template>
 	<xsl:template match="/oyster/forums[@action = 'create_thread']" mode="heading">
 		<xsl:choose>
 			<xsl:when test="/oyster/forums//post/body/xhtml"><xsl:value-of select="/oyster/forums//post/@title" /></xsl:when>
-			<xsl:otherwise>New Thread</xsl:otherwise>
+			<xsl:otherwise>New Topic</xsl:otherwise>
 		</xsl:choose>
 	</xsl:template>
 	<xsl:template match="/oyster/forums[@action = 'create_thread']" mode="description" xml:space="preserve">
@@ -23,7 +23,7 @@
 		</xsl:if>
 		<xsl:if test="/oyster/forums//confirmation">
 			<div class="confirmation"><span><strong>Confirmation: </strong> <xsl:value-of select="/oyster/forums//confirmation/text()" /></span></div>
-			<p>If you have not been redirected to your new thread please <a href="{/oyster/@base}forums/thread/{/oyster/forums//post/@id}/">click here to go there now</a>.</p><br />
+			<p>If you have not been redirected to your new topic please <a href="{/oyster/@base}forums/thread/{/oyster/forums//post/@id}/">click here to go there now</a>.</p><br />
 		</xsl:if>
 		<xsl:if test="not(/oyster/forums//confirmation)">
 			<form class="compose_container" id="posteditor_form" action="{/oyster/@url}?a=create" method="post">
@@ -97,13 +97,13 @@
 							<input type="checkbox" name="sticky" id="sticky" value="1">
 								<xsl:if test="/oyster/forums//post/@sticky = 1"><xsl:attribute name="checked">checked</xsl:attribute></xsl:if>
 							</input>
-							<label for="sticky"> Sticky thread</label><br />
+							<label for="sticky"> Sticky topic</label><br />
 						</xsl:if>
 						<xsl:if test="/oyster/user/permissions/@forums_lock = 1">
 							<input type="checkbox" name="locked" id="locked" value="1">
 								<xsl:if test="/oyster/forums//post/@locked = 1"><xsl:attribute name="checked">checked</xsl:attribute></xsl:if>
 							</input>
-							<label for="locked"> Locked thread</label>
+							<label for="locked"> Lock topic</label>
 						</xsl:if>
 					</div>				
 					<!--

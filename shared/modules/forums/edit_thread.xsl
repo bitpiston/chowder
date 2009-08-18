@@ -1,4 +1,4 @@
-	<xsl:template match="/oyster/forums[@action = 'edit_thread']" mode="title">Edit Thread</xsl:template>
+	<xsl:template match="/oyster/forums[@action = 'edit_thread']" mode="title">Edit Topic</xsl:template>
 	<xsl:template match="/oyster/forums[@action = 'edit_thread']" mode="heading"><xsl:value-of select="/oyster/forums//thread/@title" /></xsl:template>
 	<xsl:template match="/oyster/forums[@action = 'edit_thread']" mode="description" xml:space="preserve">
 		<div class="path">Forum: <a href="{/oyster/@base}forums/">Overview</a> 
@@ -47,7 +47,7 @@
 		</xsl:if>
 		<xsl:if test="/oyster/forums//confirmation">
 			<div class="confirmation"><span><strong>Confirmation: </strong> <xsl:value-of select="/oyster/forums//confirmation/text()" /></span></div>
-			<p>If you have not been redirected to the thread please <a href="{/oyster/@base}forums/thread/{/oyster/forums//thread/@id}/">click here to go there now</a>.</p><br />
+			<p>If you have not been redirected to the topic please <a href="{/oyster/@base}forums/thread/{/oyster/forums//thread/@id}/">click here to go there now</a>.</p><br />
 		</xsl:if>
 		<xsl:if test="not(/oyster/forums//confirmation)">
 			<form class="compose_container" id="posteditor_form" action="{/oyster/@url}?a=edit" method="post">
@@ -62,18 +62,18 @@
 							<input type="checkbox" name="sticky" id="sticky" value="1">
 								<xsl:if test="/oyster/forums//thread/@sticky = 1"><xsl:attribute name="checked">checked</xsl:attribute></xsl:if>
 							</input>
-							<label for="sticky"> Sticky thread</label><br />
+							<label for="sticky"> Sticky topic</label><br />
 						</xsl:if>
 						<xsl:if test="/oyster/user/permissions/@forums_lock = 1">
 							<input type="checkbox" name="locked" id="locked" value="1">
 								<xsl:if test="/oyster/forums//thread/@locked = 1"><xsl:attribute name="checked">checked</xsl:attribute></xsl:if>
 							</input>
-							<label for="locked"> Locked thread</label>
+							<label for="locked"> Lock topic</label>
 						</xsl:if>
 					</div>
 				</div>
 				<xsl:if test="/oyster/user/permissions/@forums_move = 1">
-					<strong>Move thread:</strong><br />
+					<strong>Move topic:</strong><br />
 					<div class="parent">
 						<label for="move_to">Parent forum:</label>
 						<select name="move_to" id="move_to">
@@ -85,7 +85,7 @@
 					</div>
 					<div class="editor_options_container">
 						<div class="editor_options">
-							<input type="checkbox" name="moved_note" id="moved_note" value="1" />
+							<input type="checkbox" name="moved_note" id="moved_note" value="1" checked="checked" />
 							<label for="moved_note"> Moved note</label>
 						</div>
 					</div>
