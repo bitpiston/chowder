@@ -1,6 +1,6 @@
 package oyster::request;
 
-=xl
+=xml
         <function name="pre">
             <synopsis>
                 Called before each page request
@@ -18,7 +18,7 @@ sub pre {
     ipc::update();
 }
 
-=xl
+=xml
         <function name="handler">
             <synopsis>
                 Called to handle each page request
@@ -175,7 +175,7 @@ sub handler {
     } @request_fatal_exception_handlers;
 }
 
-=xl
+=xml
         <function name="request_cleanup">
             <synopsis>
                 Performed after request_handler, after the connection is closed
@@ -207,7 +207,7 @@ sub request_cleanup {
     %REQUEST = ();
 }
 
-=xl
+=xml
         <function name="_load_exception_handlers">
             <synopsis>
                 Prepares the exception handlers necessary to serve a page request.
