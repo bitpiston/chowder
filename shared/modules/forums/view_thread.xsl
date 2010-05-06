@@ -5,7 +5,7 @@
 	<xsl:template match="/oyster/forums[@action = 'view_thread']" mode="description" xml:space="preserve">
 		<div class="path">Forum: <a href="{/oyster/@base}forums/">Overview</a> 
 			<xsl:for-each select="/oyster/forums//forum[@id = /oyster/forums/@forum_id]/ancestor::forum">
-				<span>&#8250;</span> <a href="{/oyster/@base}forums/forum/{@id}"><xsl:value-of select="@name" /></a> 
+				<span>&#8250;</span> <a href="{/oyster/@base}forums/forum/{@id}/"><xsl:value-of select="@name" /></a> 
 			</xsl:for-each>
 			<span>&#8250;</span> <strong><a href="{/oyster/@base}forums/forum/{@forum_id}/"><xsl:value-of select="/oyster/forums//forum[@id = /oyster/forums/@forum_id]/@name" /></a></strong> <a href="{/oyster/@base}forums/rss/" title="RSS feed of all posts"><img src="{/oyster/@styles}{/oyster/@style}/images/feed.png" alt="RSS" /></a></div>
 			<div class="desc"><xsl:value-of select="/oyster/forums//forum[@id = /oyster/forums/@forum_id]/@description" /></div>

@@ -7,9 +7,6 @@
         Work in progress.
     </warning>
     <todo>
-        bbcode should turn urls into links
-    </todo>
-    <todo>
         Unread/new threads/posts
     </todo>
     <todo>
