@@ -347,8 +347,8 @@ sub view_thread {
     }
     
     # Retrieve the user data
-    # Pending profiles! id, posts, registered, location, avatar, signature
-    $query = $DB->query("SELECT id FROM users WHERE id IN ($authors) LIMIT ?", scalar keys %authors);
+    # Pending profiles! id, forum_posts, registered, location, avatar, signature
+    $query = $DB->query("SELECT user_id, forum_posts, registered, location, avatar, signature FROM user_profiles WHERE user_id IN ($authors) LIMIT ?", scalar keys %authors);
     while ( my $author = $query->fetchrow_arrayref() ) {
         @author = @{$author};
         push @{ $authors{ shift @author } }, @author;
@@ -361,7 +361,7 @@ sub view_thread {
         $body           = xml::smiles($body) unless $post->[13] == 1;
         my $post_ctime  = datetime::from_unixtime($post->[6]);                                  # Post date
         my $edit_ctime  = datetime::from_unixtime($post->[9]) if defined $post->[9];            # Edit date
-        my $signature   = xml::bbcode($authors{ $post->[3] }->[5]) unless $post->[12] == 1;     # Signature unless disalbed
+        my $signature   = xml::bbcode($authors{ $post->[3] }->[5]) unless $post->[12] == 1;     # Signature unless disabled
         my $mypost      = ' mypost="1"' if $post->[3] == $USER{'id'};                           # My post flag
                         
         print qq~\t\t\t$indent<post id="$post->[0]" number="~. ++$post_number .qq~" title="$post->[1]" author_id="$post->[3]" author_name="$post->[4]" author_title="$authors{ $post->[3] }->[0]" author_posts="$authors{ $post->[3] }->[1]" author_registered="$authors{ $post->[3] }->[2]" author_location="$authors{ $post->[3] }->[3]" author_avatar="$authors{ $post->[3] }->[4]" ctime="$post_ctime" edit_user="$post->[7]" edit_reason="$post->[8]" edit_ctime="$edit_ctime" edit_count="$post->[10]" replyto="$post->[11]" disable_signature="$post->[12]" disable_smiles="$post->[13]" disable_bbcode="$post->[14]"$mypost>\n~;
@@ -1160,7 +1160,7 @@ sub delete_post {
 
     # Check permissions
     if ($USER{'id'} == $post_author_id and $PERMISSIONS{'forums_delete_posts'} != 2) {
-        user::require_permission('forums_deletet_posts', 1);
+        user::require_permission('forums_delete_posts', 1);
     }
     else {
         user::require_permission('forums_delete_posts', 2);
@@ -1422,7 +1422,7 @@ sub _get_parents {
             Caches the forums as an array of hash references
         </synopsis>
         <note>
-            %forums = ( forum_id => { id => value, name => value, parent_id => value, description => value, priority => value }, );
+            %forums = ( forum_id => ( id => value, name => value, parent_id => value, description => value, priority => value ), );
         </note>
     </function>
 =cut

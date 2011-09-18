@@ -37,6 +37,7 @@
 					<xsl:call-template name="split">
 						<xsl:with-param name="to-be-split" select="activity-current/@usernames" />
 						<xsl:with-param name="delimiter" select="','" />
+						<xsl:with-param name="href" select="'/user/profile/'" />
 					</xsl:call-template>
 					<xsl:if test="activity-current/@guests != 0">
 						 and <strong><xsl:value-of select="activity-current/@guests" /></strong> guest<xsl:if test="activity-current/@guests != 1">s</xsl:if>.
@@ -49,6 +50,7 @@
 					<xsl:call-template name="split">
 						<xsl:with-param name="to-be-split" select="activity-todays/@usernames" />
 						<xsl:with-param name="delimiter" select="','" />
+						<xsl:with-param name="href" select="'/user/profile/'" />
 					</xsl:call-template>
 					<xsl:if test="activity-todays/@guests != 0">
 						 and <strong><xsl:value-of select="activity-todays/@guests" /></strong> guest<xsl:if test="activity-todays/@guests != 1">s</xsl:if>.

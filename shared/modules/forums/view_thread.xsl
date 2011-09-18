@@ -89,7 +89,7 @@
 						</xsl:if>
 					</div>
 					<div class="author">
-						<div class="name"><a href="{/oyster/@base}user/{@author_name}/"><xsl:value-of select="@author_name" /></a></div>
+						<div class="name"><a href="{/oyster/@base}user/profile/{@author_name}/"><xsl:value-of select="@author_name" /></a></div>
 						<div class="title"><xsl:value-of select="@author_title" /></div>
 						<!-- TODO PENDING PROFILES
 						<img class="avatar" src="{@author_avatar}" alt="Avatar" />
@@ -165,6 +165,7 @@
 					<xsl:call-template name="split">
 						<xsl:with-param name="to-be-split" select="activity-current/@usernames" />
 						<xsl:with-param name="delimiter" select="','" />
+						<xsl:with-param name="href" select="'/user/profile/'" />
 					</xsl:call-template>
 					<xsl:if test="activity-current/@guests != 0">
 						 and <strong><xsl:value-of select="activity-current/@guests" /></strong> guest<xsl:if test="activity-current/@guests != 1">s</xsl:if>
