@@ -12,13 +12,16 @@
 			<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
 			<meta http-equiv="content-style-type" content="text/css" />
 			<title>
+				<!--
 				<xsl:variable name="title"><xsl:apply-templates mode="title" select="/oyster/*[1]" /></xsl:variable>
 				<xsl:choose>
 					<xsl:when test="string-length(/oyster/@page_title) != 0"><xsl:value-of select="/oyster/@page_title" /> | </xsl:when>
 					<xsl:when test="string-length(normalize-space($title)) != 0"><xsl:value-of select="$title" /> | </xsl:when>
-					<xsl:otherwise><xsl:apply-templates mode="heading" select="/oyster/*[1]" /> | </xsl:otherwise>
+					<xsl:otherwise><xsl:apply-templates mode="heading" /> | </xsl:otherwise>
 				</xsl:choose>
 				<xsl:value-of select="@title" />
+				-->
+				<xsl:apply-templates mode="heading" />
 			</title>
 			<link rel="stylesheet" type="text/css" media="screen" href="{@styles}{@style}/screen.css" />
 			<link rel="stylesheet" type="text/css" media="print" href="{@styles}{@style}/print.css" />
@@ -55,7 +58,7 @@
 				<div id="content-primary">
 					<!-- <xsl:apply-templates mode="description" select="/oyster/*[1]" /> -->
 					<xsl:if test="not(/oyster/@module = 'content')">
-						<h1><span><xsl:apply-templates mode="heading" select="/oyster/*[1]" /></span></h1>
+						<h1><span><xsl:apply-templates mode="heading" /></span></h1>
 					</xsl:if>
 					<xsl:apply-templates mode="content" />			
 				</div>
@@ -65,7 +68,7 @@
 			</div>
 			<hr />
 			<div id="footer">
-				<p class="copyright">Copyright &#169; 2007&#8211;2011 BitPiston. All rights reserved.</p>
+				<p class="copyright">Copyright &#169; 2007&#8211;2011 BitPiston Studios Ltd. All rights reserved.</p>
 				<ul class="links">
 					<li><a href="/accessiblity/">Accessibility</a></li>
 					<li><a href="/privacy/">Privacy</a></li>

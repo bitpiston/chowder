@@ -43,6 +43,7 @@ sub start {
 
     # start the buffer if it is not active
     unless (@buffers) {
+        #dies here from ssxslt !
         $prev_select = select $buffer_fh;
         seek($buffer_fh, 0, 0);
         $buffer = '';

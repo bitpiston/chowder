@@ -30,7 +30,7 @@
 	<xsl:template match="*" mode="content"></xsl:template>
 	<xsl:template match="*" mode="sidebar"></xsl:template>
 
-	<!-- LABELED MENUS (not id ones, like admin and navigation, those are styled elsewhere, usualy layout.xsl) -->
+	<!-- LABELED MENUS (not id ones, like admin and navigation, those are styled elsewhere, usually layout.xsl) -->
 	<xsl:template match="/oyster/menu[not(@id)]" mode="heading"><xsl:value-of select="@label" /></xsl:template>
 	<xsl:template match="/oyster/menu[not(@id)]" mode="description"><xsl:value-of select="@description" /></xsl:template>
 	<xsl:template match="/oyster/menu[not(@id)]" mode="content">
@@ -61,13 +61,17 @@
 	<xsl:template match="/oyster/error[@status = '404']" mode="description">HTTP 404 Error</xsl:template>
 	<xsl:template match="/oyster/error[@status = '404']" mode="content">
 		<div class="error status">
-			<p>The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.</p>
-			<p>Please try the following:</p>
+			<p><strong>Sorry, the page you were trying to view was not found.</strong><br />
+			The result of either a mistyped address, an out-of-date bookmark or a broken link on the page you just came from.</p>
+			<p>You may want to try searching this site or the following:</p>
 			<ul>
 				<li>If you typed the page address in the Address bar, make sure that it is spelled correctly.</li>
 				<li>Open the <a href="/">homepage</a>, and then look for the links to the information you want.</li>
-				<li>Click the <a href="javascript:history.back(1)">back</a> button and try another link.</li>
+				<li>Click the <a href="javascript:history.back(1)">back</a> button in your browser to return and try another link.</li>
+
 			</ul>
+			<small>HTTP 404 &#8211; File Not Found<br />
+			<xsl:value-of select="/oyster/@url" /></small>
 		</div>
 	</xsl:template>
 
@@ -134,7 +138,7 @@
 <oyster:if_server_side>
 	<xsl:template name="date">
 		<xsl:param name="time" />
-		<xsl:value-of select="$time" /> UTC
+		<xsl:value-of select="$time" /><!-- UTC-->
 	</xsl:template>
 </oyster:if_server_side>
 <oyster:if_client_side>
@@ -269,7 +273,9 @@
 			<xsl:with-param name="time-zone" select="$time-offset" />
 			<xsl:with-param name="format" select="$date-format" />
 		</xsl:call-template>
+		<!--
 		<xsl:if test="/oyster/user[@id]/@id = '0'"> UTC</xsl:if>
+		-->
 	</xsl:template>
 </oyster:if_client_side>
 

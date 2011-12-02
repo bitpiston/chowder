@@ -326,7 +326,7 @@ ul.news, ul.projects {
 	margin: 0 0 1.5em;
 }
 ul.news a, ul.projects a {
-	display: inline-block;
+	display: block;
 	color: inherit;
 	text-decoration: none;
 	position: relative;
@@ -508,38 +508,38 @@ body.contact address div.tel span.type { display: none; visibility: hidden; }
 body.contact address div.main span.value:after { margin: 0 0 0 0.25em; content: "(Tel)"; }
 body.contact address div.fax span.value:after { margin: 0 0 0 0.25em; content: "(Fax)"; }
 
-/* Content - Weblog */
-body.weblog #content { margin-bottom: 3em; }
-body.weblog.article #content { margin-bottom: 1.5em; }
-body.weblog h1 { display: none; }
-body.weblog.article h1 { display: block; }
-body.weblog h2 a, body.weblog h1 a { 
+/* Content - blog */
+body.blog #content { margin-bottom: 3em; }
+body.blog.article #content { margin-bottom: 1.5em; }
+body.blog h1 { display: none; }
+body.blog.article h1 { display: block; }
+body.blog h2 a, body.blog h1 a { 
 	color: inherit;
 	text-decoration: none;
 }
-body.weblog h2 a:hover, body.weblog h1 a:hover, body.weblog h2 a:focus, body.weblog h1 a:focus { text-decoration: underline; }
-body.weblog #content-secondary ul {
+body.blog h2 a:hover, body.blog h1 a:hover, body.blog h2 a:focus, body.blog h1 a:focus { text-decoration: underline; }
+body.blog #content-secondary ul {
 	margin: 0 0 1.5em;
 	list-style: none;
 }
-body.weblog #content-secondary li ul { margin: 0; }
-body.weblog ul.details {
+body.blog #content-secondary li ul { margin: 0; }
+body.blog ul.details {
 	margin: 0;
 	padding: 0;
 }
-body.weblog ul.details li, #comments div.details li {
+body.blog ul.details li, #comments div.details li {
 	display: inline;
 	padding: 0 0 0 20px;
 	margin: 0 1em 0 0;
 }
-body.weblog ul.details abbr, #comments div.details abbr {
+body.blog ul.details abbr, #comments div.details abbr {
 	font-variant: normal;
 	text-transform: none;
 	letter-spacing: 0;
 }
-body.weblog.article ul.details { height: 1.5em; }
-body.weblog.article ul.details li { float: left; }
-body.weblog ul.details li.addcomment { 
+body.blog.article ul.details { height: 1.5em; }
+body.blog.article ul.details li { float: left; }
+body.blog ul.details li.addcomment { 
 	text-align: right;
 	/*
 	display: block;
@@ -547,16 +547,16 @@ body.weblog ul.details li.addcomment {
 	float: right;
 	margin: 0;
 }
-body.weblog ul.details li.addcomment a {
+body.blog ul.details li.addcomment a {
 	background: url("./images/icon.comment_add2.png") -518px center no-repeat;
 	padding: 0 0 0 18px;
 }
-body.weblog ul.details li.addcomment a:hover, body.weblog ul.details li.addcomment a:focus { background-position: -2px; }
-body.weblog ul.details sup, #comments div.details sup { vertical-align: top; }
-body.weblog ul.details li.user, #comments div.details li.user { background: url("./images/icon.user.png") 0 center no-repeat; }
-body.weblog ul.details li.date, #comments div.details li.date { background: url("./images/icon.date.png") 0 center no-repeat; }
-body.weblog ul.details li.comments { background: url("./images/icon.comments.png") 0 center no-repeat; }
-body.weblog ul.details li.categories { background: url("./images/icon.folder_page.png") 0 center no-repeat; }
+body.blog ul.details li.addcomment a:hover, body.blog ul.details li.addcomment a:focus { background-position: -2px; }
+body.blog ul.details sup, #comments div.details sup { vertical-align: top; }
+body.blog ul.details li.user, #comments div.details li.user { background: url("./images/icon.user.png") 0 center no-repeat; }
+body.blog ul.details li.date, #comments div.details li.date { background: url("./images/icon.date.png") 0 center no-repeat; }
+body.blog ul.details li.comments { background: url("./images/icon.comments.png") 0 center no-repeat; }
+body.blog ul.details li.categories { background: url("./images/icon.folder_page.png") 0 center no-repeat; }
 #comments-form { margin: 1.5em 0 0; }
 #comments div.hentry {
 	padding: 1.5em 0 0;
