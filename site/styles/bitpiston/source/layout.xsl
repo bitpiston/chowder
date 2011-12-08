@@ -33,11 +33,11 @@
 			<meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0" />
 			<link rel="alternate" type="application/rss+xml" href="{@base}rss/" title="All posts RSS feed" />
 			<!-- oyster library -->
-			<script src="{@styles}oyster-yui.js" type="text/javascript" />
+			<!-- <script src="{@styles}oyster-yui.js" type="text/javascript" /> -->
 			<!-- allow modules to hook into the head tag -->
 			<xsl:apply-templates mode="html_head" />
 		</head>
-		<body class="{/oyster/@module} {/oyster/*[1]/@action}">
+		<body class="{/oyster/@module} {/oyster/*[1]/@action} {translate(/oyster/@page_title, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz')}">
 			<div id="header">
 				<a id="title" href="/">BitPiston</a>
 				<ul id="navigation">
@@ -70,15 +70,10 @@
 			<div id="footer">
 				<p class="copyright">Copyright &#169; 2007&#8211;2011 BitPiston Studios Ltd. All rights reserved.</p>
 				<ul class="links">
-					<li><a href="/accessiblity/">Accessibility</a></li>
-					<li><a href="/privacy/">Privacy</a></li>
-					<li><a href="/about/#jobs">Jobs</a></li>
-					<li><a href="http://client.bitpiston.com/">Client Login</a></li>
+					<li><a href="/about/jobs/">Work at BitPiston</a></li>
 					<li><a href="http://developer.bitpiston.com/">Project Tracker</a></li>
 				</ul>
 			</div>
-			<!-- ajax popup -->
-			<!-- ajax communication frame -->
 		</body>
 	</html>
 </xsl:template>

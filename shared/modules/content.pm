@@ -60,7 +60,8 @@ sub hook_load {
 =cut
 
 sub view_page {
-    my $url = $_[0]; # don't shift! (see "administrative links" below)
+    #my $url = $_[0]; # don't shift! (see "administrative links" below)
+    my $url = $oyster::REQUEST{'url'}; # why not? why did we pass params from the url table?
     my $url_hash;
     
     #user::require_permission('content_view');
@@ -79,7 +80,7 @@ sub view_page {
     
     # Retrieve page matching url from the db or 404 error
     $fetch_page->execute($url_hash);
-    throw 'request_404' unless $fetch_page->rows();
+    #throw 'request_404' unless $fetch_page->rows();
     
     # extract data from the query
     my ($id, $title, $ctime, $mtime) = @{$fetch_page->fetchrow_arrayref()};

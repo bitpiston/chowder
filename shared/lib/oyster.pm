@@ -458,7 +458,7 @@ sub request_handler {
             'start_time'  => $start,                    # used for benchmarking
             #'method'      => $ENV{'REQUEST_METHOD'},    # TODO: keep this? created because it can be a simple misspelling for $ENV{'REQUEST_METHOD'}
         );
-
+        
         # uhhh not sure why this is needed.... the query string env variable isnt being populated properly (fastcgi issue?)
         if ((my $query_begin = index($ENV{'REQUEST_URI'}, '?')) != -1) {
             $ENV{'QUERY_STRING'} = substr($ENV{'REQUEST_URI'}, $query_begin + 1);

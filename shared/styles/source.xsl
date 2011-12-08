@@ -77,7 +77,7 @@
 
 	<!-- GENERAL ERROR -->
 
-	<xsl:template match="error" mode="heading">Error</xsl:template>
+	<!--<xsl:template match="error" mode="heading">Error</xsl:template>-->
 	<xsl:template match="error" mode="content">
 		<div class="error general">
 			<span><strong>Error: </strong> <xsl:apply-templates /></span>
