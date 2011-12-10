@@ -1,27 +1,23 @@
 
-package content::revisions;
+package contact::revisions;
 
 # ----------------------------------------------------------------------------
-# Revision 0
+# Revision 1
 # ----------------------------------------------------------------------------
 
 $revision[0]{'up'}{'shared'} = sub {
 
     # Register the module
-    module::register('content');
+    module::register('contact');
 
     # Add permissions
-    user::add_permission('content_create');
-    user::add_permission('content_edit');
-    user::add_permission('content_delete');
-    user::add_permission('content_admin');
-    user::add_permission('content_admin_config');
+    #user::add_permission('contact_submit');
 };
 
 $revision[0]{'up'}{'site'} = sub {
 
     # Enable the module
-    module::enable('content');
+    module::enable('contact');
 
 };
 
