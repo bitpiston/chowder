@@ -186,6 +186,7 @@ dl { margin: 1.5em 0; }
     position: relative;
     margin: 3em 0 0;
 }
+#contact .error { border-color: red; }
 label { 
     display: block; 
     cursor: text; 
