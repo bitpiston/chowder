@@ -14,6 +14,7 @@ package contact;
 use oyster 'module';
 use exceptions;
 use email;
+use hash;
 
 =xml
     <function name="hook_load">
@@ -43,20 +44,22 @@ sub hook_load {
 =cut
 
 sub contact_form {
+    my $destination = 'contact@bitpiston.com';
+    my $salt        = 'O7YinnGDZBnD';    # replace this with a random string read from config in the db and write string::random() to db during module install
+    my $gmtime      = datetime::gmtime();
     
     #user::print_module_permissions('contact');
     style::include_template('contact_form');
     
     # If the form has been submitted
     if ($ENV{'REQUEST_METHOD'} eq 'POST') {
-        
-        my $destination = 'contact@bitpiston.com';
-        my $gmtime      = datetime::gmtime();
-        my $name        = $INPUT{'contact_author'};
-        my $email       = $INPUT{'contact_email'};
-        my $subject     = $INPUT{'contact_subject'};
-        my $message     = $INPUT{'contact_message'};
-        my $cc          = defined $INPUT{'contact_cc'} ? 1 : 0;
+        my $name    = $INPUT{'contact_author'};
+        my $email   = $INPUT{'contact_email'};
+        my $subject = $INPUT{'contact_subject'};
+        my $message = $INPUT{'contact_message'};
+        my $cc      = defined $INPUT{'contact_cc'} ? 1 : 0;
+        my $ts      = $INPUT{'contact_ts'};
+        my $token   = $COOKIES{'contact_token'};
         
         # Validate post
         my $success = try {
@@ -64,6 +67,9 @@ sub contact_form {
             
             # Check permissions
             #user::require_permission('contact_submit');
+            
+            # Check token
+            push @errors, 'Halted due to suspicious activity or you do not have cookies enabled.' unless $token eq hash::secure($salt . $ts) ;
             
             # Has a name?
             push @errors, 'Please enter your name into the form.' if length $name < 2;
@@ -85,7 +91,7 @@ sub contact_form {
         
         # If validation fails 
         if (!$success) {
-            print "\t<contact action=\"view\">\n";
+            print "\t<contact action=\"view\" time=\"" . $ts . "\">\n";
             print "\t\t<name>" . $name . "</name>\n";
             print "\t\t<subject>" . $subject . "</subject>\n";
             print "\t\t<message>" . $message . "</message>\n";
@@ -125,7 +131,13 @@ sub contact_form {
     else {
         
         # print the page
-        print "\t<contact action=\"view\" />\n";
+        print "\t<contact action=\"view\" time=\"" . $gmtime . "\" />\n";
+        
+        # generate a secure token to validate because spam is bad
+        my $token = hash::secure($salt . $gmtime);
+        
+        # set the cookie
+        cgi::set_cookie('contact_token', $token, 0, '/', '');
     }
 }
 
