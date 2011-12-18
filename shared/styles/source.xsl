@@ -58,11 +58,10 @@
 	<!-- 404 ERROR -->
 
 	<xsl:template match="/oyster/error[@status = '404']" mode="heading">File Not Found</xsl:template>
-	<xsl:template match="/oyster/error[@status = '404']" mode="description">HTTP 404 Error</xsl:template>
+	<xsl:template match="/oyster/error[@status = '404']" mode="description">HTTP 404</xsl:template>
 	<xsl:template match="/oyster/error[@status = '404']" mode="content">
 		<div class="error status">
-			<p><strong>Sorry, the page you were trying to view was not found.</strong><br />
-			The result of either a mistyped address, an out-of-date bookmark or a broken link on the page you just came from.</p>
+			<p>The page you were trying to view was not found. The result of either a mistyped address, an out-of-date bookmark or a broken link on the page you just came from.</p>
 			<p>You may want to try searching this site or the following:</p>
 			<ul>
 				<li>If you typed the page address in the Address bar, make sure that it is spelled correctly.</li>
@@ -71,7 +70,7 @@
 
 			</ul>
 			<small>HTTP 404 &#8211; File Not Found<br />
-			<xsl:value-of select="/oyster/@url" /></small>
+			<xsl:value-of select="@url" /></small>
 		</div>
 	</xsl:template>
 

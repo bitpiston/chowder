@@ -646,7 +646,11 @@ sub _load_exception_handlers {
         #http::header("HTTP/1.1 404 Not Found"); # sending this makes the web server use its own 404 page -- TODO: make that an option?
         style::print_header();
         event::execute('request_start');
-        print "\t<error status=\"404\" />\n";
+        my $url = $ENV{'REQUEST_URI'};
+        $url =~ s!^/!!o;
+        $url = $CONFIG{'full_url'} . $url;
+        print "\t<error status=\"404\" url=\"" . $url . "\" hash=\"" . hash::fast($REQUEST{'url'}) . "\" />\n";
+        url::print_navigation_xml();
         event::execute('request_end');
         #print "\t<url hash=\"" . hash::fast($REQUEST{'url'}) . "\">\n";
         style::print_footer();
