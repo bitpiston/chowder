@@ -1,5 +1,5 @@
 {
-    'name'           => 'Contact',
-    'description'    => 'Displays a form to submit emails.',
-#    'requires'       => ['user'],
+    'name'           => 'Content',
+    'description'    => 'Allows the creation of customizable content pages.',
+    'requires'       => ['user'],
 }
