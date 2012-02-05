@@ -226,8 +226,7 @@ form input[type=text]:focus, form textarea:focus {
     -mox-box-shadow: 0 0 1px #ddd;
     box-shadow: 0 0 1px #ddd;
 }
-#content-primary label + input[type=text] { margin-top: -25px; }
-#content-primary label + textarea { margin-top: -25px; }
+#content-primary label + textarea, #content-primary label + input[type=text] { margin-top: -25px; }
 #content-primary input[type=text] { width: 245px; } /* 97.14% = 254.5px */
 #content-primary input[type=submit] {
     font: inherit;
@@ -462,11 +461,13 @@ ul.products li strong { display: none; }
 /* Content - About */
 body.about #content-primary img {
 	float: left;
-	margin: 0.1em 0.85em 0.1em 0;
+	margin: 0.1em 0.85em 1.75em 0;
 }
-body.about #content-primary h3+em {
-    display: inline-block;
-    margin-bottom: 0.75em;
+body.about #content-primary h3 {
+	margin-top: 0.75em;
+	font: inherit;
+	clear: both;
+	letter-spacing: inherit;
 }
 
 /* Content - Services */
