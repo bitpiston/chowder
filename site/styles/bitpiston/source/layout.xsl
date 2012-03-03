@@ -32,6 +32,12 @@
 			<xsl:comment>[if !IE]&gt;</xsl:comment><link rel="stylesheet" type="text/css" media="only screen and (max-device-width: 480px), only screen and (max-width: 480px)" href="{@styles}{@style}/mobile.css" /><xsl:comment>&lt;![endif]</xsl:comment>
 			<meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0" />
 			<link rel="alternate" type="application/rss+xml" href="{@base}rss/" title="All posts RSS feed" />
+			<script type="text/javascript" src="http://www.google-analytics.com/ga.js"></script> 
+			<script type="text/javascript"> 
+				var pageTracker = _gat._getTracker("UA-92985-7"); 
+				pageTracker._initData(); 
+				pageTracker._trackPageview(); 
+			</script>
 			<!-- oyster library -->
 			<!-- <script src="{@styles}oyster-yui.js" type="text/javascript" /> -->
 			<!-- allow modules to hook into the head tag -->
@@ -74,16 +80,6 @@
 					<li><a href="http://developer.bitpiston.com/">Project Tracker</a></li>
 				</ul>
 			</div>
-			<script type="text/javascript">
-				var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
-				document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
-			</script>
-			<script type="text/javascript">
-				try {
-					var pageTracker = _gat._getTracker("UA-92985-7");
-					pageTracker._trackPageview();
-				} catch(err) {}
-			</script>
 		</body>
 	</html>
 </xsl:template>
