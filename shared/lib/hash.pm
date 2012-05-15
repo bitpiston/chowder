@@ -51,7 +51,7 @@ if ($oyster::CONFIG{'hash_method'} eq "sha") {
     sub fast {
         return substr(Digest::SHA::sha1_hex($_[0]), 0, 10);
     }
-} elsif ($oyster::CONFIG{'hash_method'} eq "jash") {
+} elsif ($oyster::CONFIG{'hash_method'} eq "jhash") {
     sub fast {
         return Digest::JHash::jhash($_[0]);
     }
