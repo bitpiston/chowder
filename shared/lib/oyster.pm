@@ -521,8 +521,8 @@ sub request_handler {
         buffer::start();
 
         # signal the request_start hook
-        #event::execute('request_start') if $REQUEST{'handler'} ne 'ajax';
-        event::execute('request_start');
+        event::execute('request_start') if $REQUEST{'handler'} ne 'ajax';
+        #event::execute('request_start');
 
         # execute the selected module and action
         try {
@@ -533,21 +533,25 @@ sub request_handler {
         my $content = buffer::end_clean();
 
         # print the header
-        style::print_header();
+        style::print_header() if $REQUEST{'handler'} ne 'ajax';
+		#style::print_header();
 
         # print the buffer
         print $content;
 
         # print the navigation menu
-        url::print_navigation_xml();
+        url::print_navigation_xml() if $REQUEST{'handler'} ne 'ajax';
+		#url::print_navigation_xml();
 
         # signal the request_end hook
-        #event::execute('request_end') if $REQUEST{'handler'} ne 'ajax';
-        event::execute('request_end');
+        event::execute('request_end') if $REQUEST{'handler'} ne 'ajax';
+        #event::execute('request_end');
 
         # print the footer
-        print qq~\t<daemon>$CONFIG{daemon_id}</daemon>\n~ if $CONFIG{'debug'};
-        style::print_footer();
+        print qq~\t<daemon>$CONFIG{daemon_id}</daemon>\n~ if $CONFIG{'debug'} and $REQUEST{'handler'} ne 'ajax';
+		#print qq~\t<daemon>$CONFIG{daemon_id}</daemon>\n~ if $CONFIG{'debug'};
+        style::print_footer() if $REQUEST{'handler'} ne 'ajax';
+		#style::print_footer();
 
         # signal the request_finish hook
         event::execute('request_finish');
