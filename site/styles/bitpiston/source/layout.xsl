@@ -82,7 +82,7 @@
 			</div>
 			<hr />
 			<div id="footer">
-				<p class="copyright">Copyright &#169; 2007&#8211;2011 BitPiston Studios Ltd. All rights reserved.</p>
+				<p class="copyright">Copyright &#169; 2007&#8211;2012 BitPiston Studios Ltd. All rights reserved.</p>
 				<ul class="links">
 					<li><a href="/about/jobs/">Work at BitPiston</a></li>
 					<li><a href="http://developer.bitpiston.com/">Project Tracker</a></li>

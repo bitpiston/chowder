@@ -1,10 +1,10 @@
 <xsl:template match="/oyster/contact" mode="html_head">
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7/jquery.min.js" />
-	<script>
+	<script><![CDATA[
 		!window.jQuery && document.write(unescape('%3Cscript src="{/oyster/@styles}jquery-1.7.min.js"%3E%3C/script%3E'))
-	</script>
+	]]></script>
 	<script type="text/javascript" src="{/oyster/@styles}validate.min.js" /> 
-		<script type="text/javascript">
+		<script type="text/javascript"><![CDATA[
 			$(document).ready(function(){
 				// Toggle the input labels
 				var textboxes = $('label + input, label + textarea');
@@ -59,7 +59,7 @@
 					}
 				});
 			});
-		</script>
+		]]></script>
 </xsl:template>
 
 <xsl:template match="/oyster/contact" mode="heading">
