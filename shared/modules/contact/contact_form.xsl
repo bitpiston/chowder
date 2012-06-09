@@ -6,7 +6,7 @@
 	<script type="text/javascript" src="{/oyster/@styles}validate.min.js" /> 
 		<script type="text/javascript">
 			$(document).ready(function(){
-			 	// Toggle the input labels
+				// Toggle the input labels
 				var textboxes = $('label + input, label + textarea');
 				textboxes.each(function(index, input){
 					var label = $(input).prev("label");
@@ -14,26 +14,26 @@
 					  	setInterval(function(){
 					     	textboxes.each(function(index,inputX){
 					      		if ( inputX.value!="" ) {
-					        		$(inputX).prev("label").addClassName('has-text');
+					        		$(inputX).prev("label").addClass('has-text');
 					      		}
 					    	});
 					 	}, 100);
 					}			 	
-			     	$(this).focus(function () {
-			      		$(this).prev("label").addClass("focus");
-			     	});
-			     	$(this).keypress(function () {
-			      		$(this).prev("label").addClass("has-text").removeClass("focus");
-			     	});
-			     	$(this).blur(function () {
-			      		if($(this).val() == "") {
-			      			$(this).prev("label").removeClass("has-text").removeClass("focus");
-			      		}
-			     	});
+				 	$(this).focus(function () {
+				  		$(this).prev("label").addClass("focus");
+				 	});
+				 	$(this).keypress(function () {
+				  		$(this).prev("label").addClass("has-text").removeClass("focus");
+				 	});
+				 	$(this).blur(function () {
+				  		if($(this).val() == "") {
+				  			$(this).prev("label").removeClass("has-text").removeClass("focus");
+				  		}
+				 	});
 					if($(this).val() != "") {
-		      			$(this).prev("label").addClass("has-text").removeClass("focus");
-		      		}
-			    });
+						$(this).prev("label").addClass("has-text").removeClass("focus");
+					}
+				});
 				// validate signup form on keyup and submit
 				$("#contact").validate({
 					rules: {
