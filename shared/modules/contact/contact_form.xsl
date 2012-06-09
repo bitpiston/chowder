@@ -1,5 +1,8 @@
 <xsl:template match="/oyster/contact" mode="html_head">
-	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6/jquery.min.js" /> 
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7/jquery.min.js" />
+	<script>
+		!window.jQuery && document.write(unescape('%3Cscript src="{/oyster/@styles}jquery-1.7.min.js"%3E%3C/script%3E'))
+	</script>
 	<script type="text/javascript" src="{/oyster/@styles}validate.min.js" /> 
 		<script type="text/javascript">
 			$(document).ready(function(){

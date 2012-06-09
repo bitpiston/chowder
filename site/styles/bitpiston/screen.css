@@ -226,7 +226,7 @@ form input[type=text]:focus, form textarea:focus {
     -mox-box-shadow: 0 0 1px #ddd;
     box-shadow: 0 0 1px #ddd;
 }
-#content-primary label + textarea, #content-primary label + input[type=text] { margin-top: -25px; }
+#content-primary label + textarea, #content-primary label + input[type=text] { margin-top: -25px; } 
 #content-primary input[type=text] { width: 245px; } /* 97.14% = 254.5px */
 #content-primary input[type=submit] {
     font: inherit;

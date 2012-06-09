@@ -25,22 +25,26 @@
 			</title>
 			<link rel="stylesheet" type="text/css" media="screen" href="{@styles}{@style}/screen.css" />
 			<link rel="stylesheet" type="text/css" media="print" href="{@styles}{@style}/print.css" />
-			<xsl:comment>[if lt IE 9]>&gt;&lt;script src="http://ie7-js.googlecode.com/svn/version/2.1(beta4)/IE9.js"&gt;&lt;/script&gt;&lt;![endif]</xsl:comment>
+			<xsl:comment>[if lt IE 9]&gt;&lt;script src="http://ie7-js.googlecode.com/svn/version/2.1(beta4)/IE9.js"&gt;&lt;/script&gt;&lt;![endif]</xsl:comment>
 			<xsl:comment>[if lt IE 10]&gt;&lt;link rel="stylesheet" type="text/css" media="screen" href="{@styles}{@style}/ie.css" /&gt;&lt;![endif]</xsl:comment>
 			<xsl:comment>[if lt IE 8]&gt;&lt;style type="text/css"&gt;#search input[type=text] {margin-top: 1px}&lt;/style&gt;&lt;![endif]</xsl:comment>
 			<xsl:comment>[if IE 9]&gt;&lt;style type="text/css"&gt;#search input[type=text] {padding-top: 5px}&lt;/style&gt;&lt;![endif]</xsl:comment>
-			<xsl:comment>[if !IE]&gt;</xsl:comment><link rel="stylesheet" type="text/css" media="only screen and (max-device-width: 480px), only screen and (max-width: 480px)" href="{@styles}{@style}/mobile.css" /><xsl:comment>&lt;![endif]</xsl:comment>
+			<xsl:comment>[if !IE]&gt;</xsl:comment>
+			<link rel="stylesheet" type="text/css" media="only screen and (max-device-width: 480px), only screen and (max-width: 480px)" href="{@styles}{@style}/mobile.css" />
+			<xsl:comment>&lt;![endif]</xsl:comment>
 			<meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0" />
 			<link rel="alternate" type="application/rss+xml" href="{@base}rss/" title="All posts RSS feed" />
 			<script type="text/javascript"><![CDATA[
-				var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
-				document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
-			]]></script>
-			<script type="text/javascript"><![CDATA[
-				try {
-					var pageTracker = _gat._getTracker("UA-92985-7");
-					pageTracker._trackPageview();
-				} catch(err) {}
+				var _gaq = _gaq || [];
+				_gaq.push(['_setAccount', 'UA-92985-7']);
+				_gaq.push(['_setDomainName', 'bitpiston.com']);
+				_gaq.push(['_setAllowLinker', true]);
+				_gaq.push(['_trackPageview']);
+				(function() {
+				var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+				ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+				(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ga);
+				})();
 			]]></script>
 			<!-- oyster library -->
 			<!-- <script src="{@styles}oyster-yui.js" type="text/javascript" /> -->
