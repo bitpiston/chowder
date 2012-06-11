@@ -1661,7 +1661,7 @@ sub _pretty_dates {
 =cut
 
 sub _clean_activity {
-    $interval = 86400; # 24 hours
+    my $interval = 86400; # 24 hours
     
     $DB->query("DELETE FROM ${module_db_prefix}activity WHERE user_id = '0' and date <= ?", datetime::gmtime() - $interval);
 }
