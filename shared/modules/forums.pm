@@ -1653,7 +1653,7 @@ sub _pretty_dates {
 }
 
 =xml
-    <function name="_clean_sessions">
+    <function name="_clean_activity">
         <synopsis>
             Cleans up old activity entries from the database
         </synopsis>

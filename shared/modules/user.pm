@@ -35,6 +35,8 @@ sub hook_load {
     our $select_user_id_by_session      = $DB->server_prepare("SELECT user_id, ip, restrict_ip FROM ${module_db_prefix}sessions WHERE session_id = ? LIMIT 1");
     our $select_user_id_by_credentials  = $DB->server_prepare("SELECT id FROM users WHERE name_hash = ? and password = ? LIMIT 1");
     #our $update_user_session            = $DB->server_prepare("UPDATE ${module_db_prefix}sessions SET session_id = ?, ip = ?, restrict_ip = ?, access_ctime = ? WHERE user_id = ? LIMIT 1");
+    our $update_user_session            = $DB->server_prepare("UPDATE ${module_db_prefix}sessions SET ip = ?, restrict_ip = ?, access_ctime = ? WHERE session_id = ? LIMIT 1");
+    #our $update_user_session            = $DB->server_prepare("UPDATE ${module_db_prefix}sessions SET access_ctime = ? WHERE session_id = ? LIMIT 1");
     our $insert_user_session            = $DB->server_prepare("INSERT INTO ${module_db_prefix}sessions (user_id, session_id, ip, restrict_ip, access_ctime) VALUES (?, ?, ?, ?, ?)");
     our $select_permissions_count       = $DB->server_prepare("SELECT COUNT(*) FROM ${module_db_prefix}permissions WHERE ${module_db_prefix}permissions.user_id = ? LIMIT 1");
 
@@ -1088,7 +1090,6 @@ sub hook_request_init {
     else {
         $USER{'session'} = $COOKIES{'session'};
     }
-
     # if a session id is set
     if (exists $USER{'session'} and length $USER{'session'} == 32) {
 
@@ -1123,8 +1124,11 @@ sub hook_request_init {
             
             # set the user id for guests
             else {
-                $is_guest_session = 1 if (($ip eq $ENV{'REMOTE_ADDR'} and $restrict_ip) or !$restrict_ip);
+                $is_guest_session = 1 if (($ip eq $ENV{'REMOTE_ADDR'} and $restrict_ip) or !$restrict_ip); 
             }
+
+            # Update sesssion access time
+            $update_user_session->execute($ip, $restrict_ip, datetime::gmtime, $USER{'session'});
         }
         
         # if the user has a session id, but it's invalid, delete the cookie so this session is not checked again
@@ -1136,8 +1140,8 @@ sub hook_request_init {
     
     # create a session for guests or continue the existing session
     unless (exists $USER{'id'}) {
-        my $session = defined $is_guest_session ? $USER{'session'} : _create_session(0, 1, $ENV{'REMOTE_ADDR'}); # id = 0 and restrict_ip = 1
-
+        
+        my $session = defined $is_guest_session ? $USER{'session'} : _create_session(0, 1, $ENV{'REMOTE_ADDR'}); # id = 0 and restrict_ip = 1        
         # set default user data
         %USER = (
             'id'          => 0,
@@ -1159,7 +1163,6 @@ sub hook_request_init {
 # called before the footer is printed
 event::register_hook('request_end', 'hook_request_end', 0);
 sub hook_request_end {
-    
     # Print the user node with permissions child-node if request flag set
     if (exists $REQUEST{'user'}{'print_permissions'}) {
         my $attributes;
