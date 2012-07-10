@@ -108,22 +108,24 @@ sub pad {
 =cut
 
 sub urlify {
-    #my $string = lc(shift()); # get the first arg and lowercase it
-    my $string = shift;
+    my $string = lc(shift()); # get the first arg and lowercase it
     
     # replace @ and & with their plaintext counterparts
-    $string =~ s/\@/ at /ogi;
-    $string =~ s/&/ and /ogi;
-
-    # replace whitespace and puncutation with underscores
+    $string =~ s/\@/ at /og;
+    $string =~ s/&/ and /og;
+    
+    # replace whitespace with +
+    $string =~ s/[\s]+/\+/og;
+    
+    # replace puncutation with underscores
     #$string =~ s/\s+/_/ogi;
-    $string =~ s/[,.!""''\s]+/_/ogi;
+    $string =~ s/[,.!""'']+/_/og;
 
     # replace multiple underscores with a single one
-    $string =~ s/_+/_/ogi;
+    $string =~ s/_+/_/og;
 
     # replaced non word/ascii characters with encoded equivalents
-    $string =~ s/([^a-zA-Z0-9_])/sprintf('%%%02X', ord $1)/ogie;
+    $string =~ s/([^a-zA-Z0-9_])/sprintf('%%%02X', ord $1)/oge;
 
     return $string;
 }
