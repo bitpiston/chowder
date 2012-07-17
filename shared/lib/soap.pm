@@ -37,7 +37,7 @@ our $crlf    = "\015\012"; # header line endings
     </function>
 =cut
 
-sub request {
+sub request_legacy {
     require IO::Socket;
 
     # parse arguments
@@ -111,74 +111,61 @@ sub request {
     </function>
 =cut
 
-sub request_ssl {
-    require IO::Socket;
-    #require IO::Socket::SSL;
-    use IO::Socket::SSL qw(debug3);
-
+sub request {
     # parse arguments
-    my ($conf, $action, $name, $request) = @_;
-    $name               = $name . $conf->{'xmlns'};
+    my ($request, $ssl) = @_;
     $options{'timeout'} = $timeout unless exists $options{'timeout'};
     $options{'max_kb'}  = $max_kb  unless exists $options{'max_kb'};  # should use $cgi::max_post_size, but this module may be used without cgi
-    my $content;
-
+    my ($content, $sock, $host, $port, $path);
+        
     # get host, port, and path from url
-    throw 'validation_error' => "Invalid url: '$conf->{url}'." unless $conf->{'url'} =~ m!^(?:http|https)://([a-zA-Z](?:[a-zA-Z\-]+\.)+(?:[a-zA-Z]{2,5}))(?::(\d+))?((?:/[\S\s]+?)/?)?$!o;
-    my $host = $1;
-    my $port = $2 || 443;
-    my $path = $3;
+    throw 'validation_error' => "Invalid url: '$request->{'url'}'." unless $request->{'url'} =~ m!^(?:http|https)://([a-zA-Z](?:[a-zA-Z\-]+\.)+(?:[a-zA-Z]{2,5}))(?::(\d+))?((?:/[\S\s]+?)/?)?$!o;
+    $host = $1;
+    $path = $3;
     $path = "/$path" unless $path =~ m{^/}; # lead the path with a / if it isn't already
     
-    # Contruct the XML from the content hash
-    $content .= '<?xml version="1.0" encoding="UTF-8"?>' . "\n" . 
-                '<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">' . "\n" .  
-                "\t<SOAP-ENV:Header />\n" . 
-                "\t<SOAP-ENV:Body>\n";
-    $content .= _print_vars($name, $request, 2);
-    $content .= "\t</SOAP-ENV:Body>\n" . 
-                '</SOAP-ENV:Envelope>' . "\n";
-
     # open a connection
-    my $sock = IO::Socket::SSL->new(
-        PeerAddr => $host,
-        PeerPort => $port,
-        Proto    => 'tcp',
-        #Timeout  => $options{'timeout'},
-        SSL_use_cert => '1',
-        SSL_verify_mode => '0x00',
-        SSL_key_file => $conf->{'ssl_key'},
-        SSL_cert_file => $conf->{'ssl_cert'},
-    ) or throw 'validation_error' => "Error connecting to host '$host'.";
+    if (defined $ssl) {
+        require IO::Socket::SSL;
+        #use IO::Socket::SSL qw(debug9);
+        $port = $2 || 443;
+        
+        $request->{'ssl'}->{'PeerAddr'} = $host;
+        $request->{'ssl'}->{'PeerPort'} = $port;
+        $request->{'ssl'}->{'Proto'}    = 'tcp';
+        $sock = IO::Socket::SSL->new(%{ $request->{'ssl'} }) or throw 'validation_error' => "Error connecting to host '$host'.";
+    }
+    else {
+        require IO::Socket;
+        $port = $2 || 80;
+        
+        $sock = IO::Socket::INET->new(
+                PeerAddr => $host,
+                PeerPort => $port,
+                Proto    => 'tcp',
+                Timeout  => $options{'timeout'},
+            ) or throw 'validation_error' => "Error connecting to host '$host'.";    
+    }
     $sock->autoflush(); # disable output buffering on this connection
-
+    
     # post the request
+    my $headers;
+    foreach my $header (@{ $request->{'headers'} }) {
+        $headers .= $header . $crlf;
+    }
     print $sock join($crlf,
         "POST $path HTTP/1.1",
         "Host: $host:$port",
-        "Authorization: Basic $conf->{auth}", 
+        'Connection: close',
+        'Accept-Encoding: gzip,deflate',
+        'Content-Length: ' . length($request->{'xml_header'} . $request->{'xml_body'} . $request->{'xml_footer'}),
         'Content-Type: text/xml; charset=utf-8',
-        'Content-Length: ' . length($content),
-        #'Connection: close',
-        "SOAPAction: \"$action\"",
-        '', '', # end header
-    ) . $content;    
-    
-    # post the request
-    print join($crlf,
-        "POST $path HTTP/1.1",
-        "Host: $host:$port",
-        "Authorization: Basic $conf->{auth}", 
-        'Content-Type: text/xml; charset=utf-8',
-        'Content-Length: ' . length($content),
-        #'Connection: close',
-        "SOAPAction: \"$action\"",
-        '', '', # end header
-    ) . $content;    
-    
-    
+        $headers,
+        '', # end header
+    ) . $request->{'xml_header'} . $request->{'xml_body'} . $request->{'xml_footer'};  
+
     # process, parse and return the response
-    my $response = _process_response($sock, $conf->{'url'}, \%options);
+    my $response = _process_response($sock, $request->{'url'}, \%options);
     
     return $response;
 }
@@ -251,23 +238,19 @@ sub _process_response {
         }
     });
     $parser->parse_string($buffer);
-    
-    # Trim the useless elements that will always be there (unless they aren't)
-    my $response = $structure{'Envelope'}{'Body'};
         
-    #return $response;
-    return $buffer;
+    return \%structure;
 }
 
 =xml
-    <function name="_print_vars">
+    <function name="print_vars">
         <synopsis>
             Like xml::print_var but the hash is complex and ordered. Also handles multiple xml name spaces properly.
         </synopsis>
     </function>
 =cut
 
-sub _print_vars {
+sub print_vars {
     my $name   = shift;
     my $value  = shift;
     my $depth  = shift || 2;
@@ -292,7 +275,7 @@ sub _print_vars {
         $buffer .= "$indent<$name$xmlns>\n";
         my @sorted_keys = sort { $value->{$a}->[0] <=> $value->{$b}->[0] } keys %{$value};
            for my $key (@sorted_keys) {
-            $buffer .= _print_vars($key, $value->{$key}->[1], $depth + 1);
+            $buffer .= print_vars($key, $value->{$key}->[1], $depth + 1);
         }
         $buffer .= "$indent</$name>\n";
     }
