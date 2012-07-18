@@ -16,6 +16,7 @@ use exceptions;
 use string;
 use hash;
 use url;
+use xml;
 
 # import modules
 use user;
@@ -259,10 +260,10 @@ sub edit_page {
             style::include_template('create_edit');
             print "\t<content action=\"edit\" id=\"$page_id\" parent=\"$page->{parent_id}\" has_validated=\"$has_validated\" title=\"$title\" slug=\"$slug\" show_nav_link=\"" . ( $show_nav_link ? 'true' : 'false' ) . "\" can_add_files=\"" . ( $PERMISSIONS{'file_add'} ? 'true' : 'false' ) . "\">\n";
             if ($fields_validated) {
-                print "\t\t<field type=\"text\" />\n";
+                #print "\t\t<field type=\"text\" />\n";
             } else {
-                my $field = shift(@fields);
-                print "\t\t<field name=\"$field->{name}\" type=\"$field->{type}\" translation_mode=\"$field->{translation_mode}\" inside_content_node=\"$field->{inside_content_node}\" />\n";
+                #my $field = shift(@fields);
+                #print "\t\t<field name=\"$field->{name}\" type=\"$field->{type}\" translation_mode=\"$field->{translation_mode}\" inside_content_node=\"$field->{inside_content_node}\" />\n";
             }
             _print_fields(@fields);
             print "\t</content>\n";
@@ -279,7 +280,7 @@ sub edit_page {
     else {
         style::include_template('create_edit');
         print "\t<content action=\"edit\" id=\"$page->{id}\" parent=\"$page->{parent_id}\" title=\"$page->{title}\" slug=\"$page->{slug}\" show_nav_link=\"" . ( $page->{'show_nav_link'} ? 'true' : 'false' ) . "\" can_add_files=\"" . ( $PERMISSIONS{'file_add'} ? 'true' : 'false' ) . "\">\n";
-        print "\t\t<field type=\"text\" />\n";
+        #print "\t\t<field type=\"text\" />\n";
         _print_page_fields($page_id);
         print "\t</content>\n";
 
@@ -319,12 +320,13 @@ sub create_page {
 
         # validate form input
         $has_validated = try {
+            my @errors;
 
             # validate title
-            throw validation_error, 'A page title is required.' unless length $INPUT{'title'};
+            push @errors, 'A page title is required.' unless length $INPUT{'title'};
             
             # validate title
-            throw validation_error, 'A page slug is required.' unless length $INPUT{'slug'};
+            push @errors, 'A page slug is required.' unless length $INPUT{'slug'};
             
             # validate show navigation link checkbox
             $show_nav_link = $INPUT{'show_nav_link'} ? 1 : 0 ;
@@ -332,8 +334,10 @@ sub create_page {
             # validate fields
             $fields_validated = try { _validate_fields(@fields) };
             abort(1) unless $fields_validated; # abort the current try block if _validate_fields failed (so $has_validated is false)
+            
+            throw 'validation_error' => @errors if @errors > 0;
         };
-
+        
         # assemble some variables
         my $title = xml::entities($INPUT{'title'}, 'proper_english');
 
@@ -403,10 +407,10 @@ sub create_page {
             style::include_template('create_edit');
             print "\t<content action=\"create\" parent=\"$parent->{id}\" has_validated=\"$has_validated\" title=\"$title\" slug=\"$INPUT{slug}\" show_nav_link=\"" . ( $show_nav_link ? 'true' : 'false' ) . "\" can_add_files=\"" . ( $PERMISSIONS{'file_add'} ? 'true' : 'false' ) . "\">\n";
             if ($fields_validated) { # if fields validated, add a new field to the list
-                print "\t\t<field type=\"text\" />\n";
+                #print "\t\t<field type=\"text\" />\n";
             } else {                 # field's didn't validate, the top field needs to be populated with the invalid field data
-                my $field = shift(@fields);
-                print "\t\t<field name=\"$field->{name}\" type=\"$field->{type}\" translation_mode=\"$field->{translation_mode}\" inside_content_node=\"$field->{inside_content_node}\" />\n";
+                #my $field = shift(@fields);
+                #print "\t\t<field name=\"$field->{name}\" type=\"$field->{type}\" translation_mode=\"$field->{translation_mode}\" inside_content_node=\"$field->{inside_content_node}\" />\n";
             }
             _print_fields(@fields);
             print "\t</content>\n";
@@ -434,7 +438,7 @@ sub create_page {
         my $can_add_files = $PERMISSIONS{'file_add'} ? 'true' : 'false';
         if ($template_id) {
             print "\t<content action=\"create\" parent=\"$parent->{id}\" can_add_files=\"$can_add_files\">\n";
-            print "\t\t<field type=\"text\" />\n";
+            #print "\t\t<field type=\"text\" />\n";
             _print_page_fields($template_id);
             print "\t</content>\n";
         }

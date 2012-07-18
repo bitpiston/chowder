@@ -19,4 +19,12 @@
         'name'   => 'Configuration',
         'levels' => ['No', 'Yes'],
     },
+    'content_templates' => {
+        'name'   => 'Manage Templates',
+        'levels' => ['No', 'Yes'],
+    },
+    'content_revisions' => {
+        'name'   => 'Revisions/History',
+        'levels' => ['No', 'Yes'],
+    },
 }
