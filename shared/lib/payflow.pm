@@ -42,20 +42,21 @@ sub sale_credit {
     my ($config, $data) = @_;
         
     # Ordered hash of PayPal data to turn into XML
+=xml                
+                    'BillTo' => [ 0, {
+                        'Address' => [ 0, {
+                            'Street'  => [ 0, $data->{'street'} ],
+                            'City'    => [ 1, $data->{'city'} ],
+                            'State'   => [ 2, $data->{'state'} ],
+                            'Zip'     => [ 3, $data->{'zip'} ],
+                            'Country' => [ 4, $data->{'country'} ],
+                        } ],
+                    } ],
+=cut  
     my %content = (
         'PayData' => [ 0, { 
             'Invoice' => [ 0, {
-=xml                
-                'BillTo' => [ 0, {
-                    'Address' => [ 0, {
-                        'Street'  => [ 0, $data->{'street'} ],
-                        'City'    => [ 1, $data->{'city'} ],
-                        'State'   => [ 2, $data->{'state'} ],
-                        'Zip'     => [ 3, $data->{'zip'} ],
-                        'Country' => [ 4, $data->{'country'} ],
-                    } ],
-                } ],
-=cut                
+          
                 'NationalTaxIncl' => [ 1, $data->{'tax'} ],
                 'TotalAmt'        => [ 2, $data->{'cost'} ],
             } ],
@@ -94,18 +95,7 @@ sub authorization_credit {
     # Ordered hash of PayPal data to turn into XML
     my %content = (
         'PayData' => [ 0, { 
-            'Invoice' => [ 0, {
-=xml                
-                'BillTo' => [ 0, {
-                    'Address' => [ 0, {
-                        'Street'  => [ 0, $data->{'street'} ],
-                        'City'    => [ 1, $data->{'city'} ],
-                        'State'   => [ 2, $data->{'state'} ],
-                        'Zip'     => [ 3, $data->{'zip'} ],
-                        'Country' => [ 4, $data->{'country'} ],
-                    } ],
-                } ],
-=cut                
+            'Invoice' => [ 0, {       
                 'NationalTaxIncl' => [ 1, $data->{'tax'} ],
                 'TotalAmt'        => [ 2, $data->{'cost'} ],
             } ],
