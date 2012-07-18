@@ -144,6 +144,154 @@ sub view_page {
 }
 
 =xml
+    <function name="edit_page">
+        <synopsis>
+            Edits and existing page.
+        </synopsis>
+    </function>
+=cut
+
+sub edit_page {
+    user::require_permission('content_edit');
+    user::print_module_permissions('content');
+
+    # validate page id and fetch page data
+    my $select_page      = $DB->query('SELECT * ' . _from());
+    throw 'request_404' unless $select_page->rows();
+    my $page             = $select_page->fetchrow_hashref();
+    my $page_id          = $page->{'id'};
+    my $page_slug        = $page->{'slug'};
+    $page->{'url'}       = $REQUEST{'url'}; # this needs to be deprecated and replaced with $REQUEST{'url}
+    $page->{'parent_id'} = $REQUEST{'current_url'}->{'parent_id'}; # this needs to be deprecated and replaced with $REQUEST{'current_url'}->{'parent_id'}
+    my $parent           = url::get_by_id($page->{'parent_id'});
+    
+    # if the form has been submitted
+    if ($ENV{'REQUEST_METHOD'} eq 'POST') {
+        my ($show_nav_link, @fields, $has_validated, $fields_validated);
+
+        # process fields in %INPUT
+        @fields = _process_input_fields();
+
+        # validate form input
+        $has_validated = try {
+
+            # validate title
+            throw validation_error, 'A page title is required.' unless length $INPUT{'title'};
+            
+            # validate title
+            throw validation_error, 'A page slug is required.' unless length $INPUT{'slug'};
+            
+            # validate show navigation link checkbox
+            $show_nav_link = $INPUT{'show_nav_link'} ? 1 : 0 ;
+
+            # validate fields
+            $fields_validated = try { _validate_fields(@fields) };
+            abort(1) unless $fields_validated; # abort the current try block if _validate_fields failed (so $has_validated is false)
+        };
+
+        # assemble some variables
+        my $title = xml::entities($INPUT{'title'}, 'proper_english');
+        my $slug  = $INPUT{'slug'};
+
+        # is the user trying to save this?
+        if ($has_validated and $INPUT{'save'}) {
+            my %update_url; # fields that need to be updated in the url
+
+            # find a unique url for this page if the page title has changed
+            my $url = string::urlify($slug);
+            $url    = "$parent->{url}/$url" if $parent->{'id'};
+            if ($url ne $page->{'url'}) {
+                $url = url::unique($url);
+                $update_url{'url'}   = $url;   # update url
+                $update_url{'title'} = $title; # update url title
+            }
+            
+            # update show_nav_link in the url (if necessary)
+            $update_url{'show_nav_link'} = $show_nav_link if $show_nav_link != $page->{'show_nav_link'};
+
+            # update the url (if necessary)
+            url::update(url => $page->{'url'}, %update_url) if %update_url;
+
+            # make a revision of this page
+            _create_revision($page_id);
+
+            # update the page
+            my $query = $DB->query(
+                "UPDATE ${module_db_prefix}pages SET title = ?, mtime = NOW(), author_id = ?, url_hash = ?, slug = ? WHERE id = ?",
+                $title, $user::data{'id'}, hash::fast($url), $slug, $page_id
+            );
+
+            # save fields
+            _save_fields($page_id, @fields);
+
+            # confirmation
+            confirmation('The page has been saved.');
+
+            # reload navigation
+            ipc::do('url', 'load_navigation') if $show_nav_link == 1;
+
+            # display the page
+            view_page($page_id, 'ignore_query_string' => 1, 'skip_admin_links' => 1);
+
+            # administrative links
+            #module::sims::admin_menu::menu_url('This Page' => "$BASE_URL$url/");
+            #module::sims::admin_menu::add_sub_page_item('menu' => 'This Page', 'parent_id' => $REQUEST{'current_url'}->{'id'});
+            #module::sims::admin_menu::add_item('menu' => 'This Page', 'label' => 'Edit',      'url' => "$BASE_URL$url/?a=edit")      if $PERMISSIONS{'content_edit'};
+            #module::sims::admin_menu::add_item('menu' => 'This Page', 'label' => 'Delete',    'url' => "$BASE_URL$url/?a=delete")    if $PERMISSIONS{'content_delete'};
+            #module::sims::admin_menu::add_item('menu' => 'This Page', 'label' => 'Revisions', 'url' => "$BASE_URL$url/?a=revisions") if $PERMISSIONS{'content_revisions'};
+        }
+
+        # the user is not trying to submit, only preview, or they tried to submit and their page did not validate
+        else {
+
+            # preview
+            # TODO: does not obey inside_content_node
+            if ($has_validated) {
+                print "\t<content action=\"view\" preview=\"true\" title=\"$title\" slug=\"$slug\">\n";
+                for my $field (@fields) {
+                    replace_call_data($field->{'translated_value'}, $field->{'call_data'}) if $field->{'call_data'};
+                    print "\t\t<$field->{id}>$field->{translated_value}</$field->{id}>\n";
+                }
+                print "\t</content>\n";
+            }
+
+            # make changes/save form
+            style::include_template('create_edit');
+            print "\t<content action=\"edit\" id=\"$page_id\" parent=\"$page->{parent_id}\" has_validated=\"$has_validated\" title=\"$title\" slug=\"$slug\" show_nav_link=\"" . ( $show_nav_link ? 'true' : 'false' ) . "\" can_add_files=\"" . ( $PERMISSIONS{'file_add'} ? 'true' : 'false' ) . "\">\n";
+            if ($fields_validated) {
+                print "\t\t<field type=\"text\" />\n";
+            } else {
+                my $field = shift(@fields);
+                print "\t\t<field name=\"$field->{name}\" type=\"$field->{type}\" translation_mode=\"$field->{translation_mode}\" inside_content_node=\"$field->{inside_content_node}\" />\n";
+            }
+            _print_fields(@fields);
+            print "\t</content>\n";
+
+            # administrative links
+            #module::sims::admin_menu::menu_url('This Page' => "$BASE_URL$page->{url}/");
+            #module::sims::admin_menu::add_sub_page_item('menu' => 'This Page', 'parent_id' => $REQUEST{'current_url'}->{'id'});
+            #module::sims::admin_menu::add_item('menu' => 'This Page', 'label' => 'Delete',    'url' => "$BASE_URL$page->{url}/?a=delete")    if $PERMISSIONS{'content_delete'};
+            #module::sims::admin_menu::add_item('menu' => 'This Page', 'label' => 'Revisions', 'url' => "$BASE_URL$page->{url}/?a=revisions") if $PERMISSIONS{'content_revisions'};
+        }
+    }
+
+    # print a fresh edit page form
+    else {
+        style::include_template('create_edit');
+        print "\t<content action=\"edit\" id=\"$page->{id}\" parent=\"$page->{parent_id}\" title=\"$page->{title}\" slug=\"$page->{slug}\" show_nav_link=\"" . ( $page->{'show_nav_link'} ? 'true' : 'false' ) . "\" can_add_files=\"" . ( $PERMISSIONS{'file_add'} ? 'true' : 'false' ) . "\">\n";
+        print "\t\t<field type=\"text\" />\n";
+        _print_page_fields($page_id);
+        print "\t</content>\n";
+
+        # administrative links
+        #module::sims::admin_menu::menu_url('This Page' => "$BASE_URL$page->{url}/");
+        #module::sims::admin_menu::add_sub_page_item('menu' => 'This Page', 'parent_id' => $REQUEST{'current_url'}->{'id'});
+        #module::sims::admin_menu::add_item('menu' => 'This Page', 'label' => 'Delete',    'url' => "$BASE_URL$page->{url}/?a=delete")    if $PERMISSIONS{'content_delete'};
+        #module::sims::admin_menu::add_item('menu' => 'This Page', 'label' => 'Revisions', 'url' => "$BASE_URL$page->{url}/?a=revisions") if $PERMISSIONS{'content_revisions'};
+    }
+}
+
+=xml
     <function name="create_page">
         <synopsis>
             Creates a new content page.
@@ -174,7 +322,10 @@ sub create_page {
 
             # validate title
             throw validation_error, 'A page title is required.' unless length $INPUT{'title'};
-
+            
+            # validate title
+            throw validation_error, 'A page slug is required.' unless length $INPUT{'slug'};
+            
             # validate show navigation link checkbox
             $show_nav_link = $INPUT{'show_nav_link'} ? 1 : 0 ;
 
@@ -190,7 +341,7 @@ sub create_page {
         if ($has_validated and $INPUT{'save'}) {
 
             # find a unique url for this page
-            my $url = string::urlify($INPUT{'title'});
+            my $url = string::urlify($INPUT{'slug'});
             $url = "$parent->{url}/$url" if $parent->{'id'};
             $url = url::unique($url);
 
@@ -205,8 +356,8 @@ sub create_page {
 
             # insert the page into the database
             my $query = $DB->query(
-                "INSERT INTO ${module_db_prefix}pages (id, parent_id, title, ctime, mtime, author_id, url_hash) VALUES (?, ?, ?, NOW(), NOW(), ?, ?)",
-                $url_id, $parent->{'id'}, $title, $USER{'id'}, hash::fast($url)
+                "INSERT INTO ${module_db_prefix}pages (id, parent_id, title, ctime, mtime, author_id, url_hash, slug) VALUES (?, ?, ?, NOW(), NOW(), ?, ?, ?)",
+                $url_id, $parent->{'id'}, $title, $USER{'id'}, hash::fast($url), $INPUT{'slug'}
             );
             my $page_id = $DB->insert_id();
 
@@ -250,12 +401,12 @@ sub create_page {
 
             # make changes/save form
             style::include_template('create_edit');
-            print "\t<content action=\"create\" parent=\"$parent->{id}\" has_validated=\"$has_validated\" title=\"$title\" show_nav_link=\"" . ( $show_nav_link ? 'true' : 'false' ) . "\" can_add_files=\"" . ( $PERMISSIONS{'file_add'} ? 'true' : 'false' ) . "\">\n";
+            print "\t<content action=\"create\" parent=\"$parent->{id}\" has_validated=\"$has_validated\" title=\"$title\" slug=\"$INPUT{slug}\" show_nav_link=\"" . ( $show_nav_link ? 'true' : 'false' ) . "\" can_add_files=\"" . ( $PERMISSIONS{'file_add'} ? 'true' : 'false' ) . "\">\n";
             if ($fields_validated) { # if fields validated, add a new field to the list
                 print "\t\t<field type=\"text\" />\n";
             } else {                 # field's didn't validate, the top field needs to be populated with the invalid field data
                 my $field = shift(@fields);
-                print "\t\t<field name=\"$field->{name}\" type=\"$field->{type}\" translation_action=\"$field->{translation_mode}\" inside_content_node=\"$field->{inside_content_node}\" />\n";
+                print "\t\t<field name=\"$field->{name}\" type=\"$field->{type}\" translation_mode=\"$field->{translation_mode}\" inside_content_node=\"$field->{inside_content_node}\" />\n";
             }
             _print_fields(@fields);
             print "\t</content>\n";
@@ -309,13 +460,13 @@ sub create_page {
 =cut
 
 sub delete_page {
-    user::require_permission('content_dlete');
+    user::require_permission('content_delete');
     user::print_module_permissions('content');    
 
     # validate page id and fetch page data
-    my $select_page = $DB->query('SELECT id, title ' . _from());
+    my $select_page = $DB->query('SELECT id, title, url_hash ' . _from());
     throw 'request_404' unless $select_page->rows();
-    my ($page_id, $title) = @{$select_page->fetchrow_arrayref()};
+    my ($page_id, $title, $url_hash) = @{$select_page->fetchrow_arrayref()};
 
     # administrative links
     #module::sims::admin_menu::menu_url('This Page' => "$BASE_URL$REQUEST{url}/");
@@ -332,7 +483,7 @@ sub delete_page {
     confirm("Are you sure you wish to permanentally delete \"$title\"?");
 
     # delete the url
-    $DB->query("DELETE FROM ${DB_PREFIX}urls WHERE module = 'content' and function = 'view_page' and params = ?", $page_id);
+    $DB->query("DELETE FROM ${DB_PREFIX}urls WHERE module = 'content' and function = 'view_page' and url_hash = ?", $url_hash);
 
     # delete the page
     $DB->query("DELETE FROM ${module_db_prefix}pages WHERE id = ?", $page_id);
@@ -724,7 +875,7 @@ sub _save_fields {
 # print field data for editing, expects one or more arguments
 sub _print_fields {
     for my $field (@_) {
-        print "\t\t<field name=\"$field->{name}\" type=\"$field->{type}\" translation_action=\"$field->{translation_mode}\" inside_content_node=\"$field->{inside_content_node}\">\n";
+        print "\t\t<field name=\"$field->{name}\" type=\"$field->{type}\" translation_mode=\"$field->{translation_mode}\" inside_content_node=\"$field->{inside_content_node}\">\n";
         if ($field->{'type'} eq 'dropdown') {
             for my $option (@{$field->{'options'}}) {
                 print "\t\t\t<option value=\"$option\"/>\n";
@@ -741,7 +892,7 @@ sub _print_page_fields {
 
     my $query = $DB->query("SELECT * FROM ${module_db_prefix}page_fields WHERE page_id = ?", $page_id);
     while (my $field = $query->fetchrow_hashref()) {
-        print "\t\t<field name=\"$field->{name}\" type=\"$field->{type}\" translation_action=\"$field->{translation_mode}\" inside_content_node=\"$field->{inside_content_node}\">\n";
+        print "\t\t<field name=\"$field->{name}\" type=\"$field->{type}\" translation_mode=\"$field->{translation_mode}\" inside_content_node=\"$field->{inside_content_node}\">\n";
         if ($field->{'type'} eq 'dropdown') {
             my @options = split(/\n/, $field->{'data'});
             for my $option (@options) {
@@ -760,16 +911,16 @@ sub _create_revision {
     my ($page_id, $dont_delete_yet) = @_;
 
     # fetch current page data
-    my $page = $DB->query("SELECT title, mtime, author_id, author_name FROM ${module_db_prefix}pages WHERE id = ? LIMIT 1", $page_id)->fetchrow_hashref();
+    my $page = $DB->query("SELECT title, mtime, author_id FROM ${module_db_prefix}pages WHERE id = ? LIMIT 1", $page_id)->fetchrow_hashref();
 
     # create revision entry
-    my $query = $DB->query("INSERT INTO ${module_db_prefix}page_revisions (page_id, mtime, title, author_id, author_name) VALUES (?, ?, ?, ?, ?)", $page_id, @{$page}{qw(mtime title author_id author_name)});
+    my $query = $DB->query("INSERT INTO ${module_db_prefix}page_revisions (page_id, mtime, title, author_id) VALUES (?, ?, ?, ?)", $page_id, @{$page}{qw(mtime title author_id)});
     my $rev_id = $DB->insert_id("${module_db_prefix}page_revision_id");
 
     # copy all fields
-    my $query = $DB->query("SELECT id, name, type, data, translation_mode, inside_content_node, value, translated_value, call_data FROM ${module_db_prefix}page_fields WHERE page_id = ?", $page_id);
+    my $query = $DB->query("SELECT page_id, name, type, data, translation_mode, inside_content_node, value, translated_value, call_data FROM ${module_db_prefix}page_fields WHERE page_id = ?", $page_id);
     while (my $field = $query->fetchrow_arrayref()) {
-        $DB->query("INSERT INTO ${module_db_prefix}page_field_history (revision_id, id, name, type, data, translation_mode, inside_content_node, value, translated_value, call_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", $rev_id, @{$field});
+        $DB->query("INSERT INTO ${module_db_prefix}page_field_history (revision_id, page_id, name, type, data, translation_mode, inside_content_node, value, translated_value, call_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", $rev_id, @{$field});
     }
 
     _delete_old_revisions($page_id) unless $dont_delete_yet;
@@ -779,7 +930,7 @@ sub _delete_old_revisions {
     my $page_id = shift;
 
     # delete old revision beyond num_revisions threshhold
-    my $query = $DB->query("SELECT id FROM ${module_db_prefix}page_revisions WHERE page_id = ? ORDER BY id DESC LIMIT $CONFIG{num_revisions}, 100", $page_id);
+    my $query = $DB->query("SELECT id FROM ${module_db_prefix}page_revisions WHERE page_id = ? ORDER BY id DESC LIMIT $config{num_revisions}, 100", $page_id);
     while (my $rev = $query->fetchrow_arrayref()) {
         my $rev_id = $rev->[0];
         $DB->do("DELETE FROM ${module_db_prefix}page_revisions WHERE id = $rev_id LIMIT 1");

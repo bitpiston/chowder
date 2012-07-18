@@ -114,9 +114,6 @@ sub urlify {
     $string =~ s/\@/ at /og;
     $string =~ s/&/ and /og;
     
-    # replace whitespace with +
-    $string =~ s/[\s]+/\+/og;
-    
     # replace puncutation with underscores
     #$string =~ s/\s+/_/ogi;
     $string =~ s/[,.!""'']+/_/og;
@@ -128,6 +125,9 @@ sub urlify {
     #$string =~ s/([^a-zA-Z0-9_])/sprintf('%%%02X', ord $1)/oge;
     $string = cgi::uri_encode($string);
 
+    # replace whitespace with +
+    $string =~ s/%20/\+/og;
+    
     return $string;
 }
 
