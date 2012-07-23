@@ -1,5 +1,22 @@
 <oyster:import href="content/view_page.xsl" />
 
+<xsl:template match="/oyster/content[@action = 'create' or @action = 'edit']" mode="html_head">
+    <link rel="stylesheet" href="{/oyster/@styles}codemirror.css" />
+	<script src="{/oyster/@styles}codemirror.min.js" />
+    <script src="{/oyster/@styles}codemirror-xml.min.js" />
+    <style>
+        .CodeMirror {
+            width: 900px;
+            border: 1px solid #999;
+            background: #fff;
+        }
+        .CodeMirror-scroll {
+            height: 600px; overflow: hidden;
+        }
+    </style>
+</xsl:template>
+
+
 <xsl:template match="/oyster/content[@action = 'create' or @action = 'edit' or @action = 'create_select_template']" mode="heading">
 	<xsl:choose>
 		<xsl:when test="@action = 'create' or @action = 'create_select_template'">Create </xsl:when>
@@ -137,6 +154,15 @@
 												<xsl:if test="@type = 'textarea_full'">full</xsl:if>
 											</xsl:attribute><xsl:value-of select="value" />
 										</textarea>
+                                        <xsl:if test="@translation_mode = 'xhtml'">
+                                    		<script>
+                                                var editor = CodeMirror.fromTextArea(document.getElementById("<xsl:value-of select="$field_prefix" />value"), {
+                                                    mode: {name: "xml", alignCDATA: true},
+                                                    lineNumbers: true,
+                                                    lineWrapping: true
+                                                });
+                                    		</script>
+                                        </xsl:if>                            
 									</dd>
 									<!--<dt><label for="{$field_prefix}translation_mode">Content Type:</label></dt>-->
 									<dd>
