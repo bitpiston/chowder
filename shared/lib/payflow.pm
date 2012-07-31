@@ -14,7 +14,6 @@
 package payflow;
 
 use soap;
-use exceptions;
 
 =xml
     <section title="Public Functions">

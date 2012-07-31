@@ -415,7 +415,7 @@ sub confirm_email {
     my ($user_id, $new_email) = @{$query->fetchrow_arrayref()};
 
     # update the user's email
-    $DB->query('UPDATE users SET email = ? WHERE id = ?', $new_email, $user_id);
+    $DB->query('UPDATE users SET email = ?, email_hash = ? WHERE id = ?', $new_email, hash::fast($new_email), $user_id);
 
     # delete the email change from the database
     $DB->query('DELETE FROM user_email_changes WHERE user_id = ?', $user_id);
@@ -451,8 +451,8 @@ sub confirm_account {
     
     # copy their information to the real users table
     my $query = $DB->query(
-        'INSERT INTO users (name, name_hash, password, email) VALUES (?, ?, ?, ?)',
-        $name, hash::fast(lc($name)), $password, $email
+        'INSERT INTO users (name, name_hash, password, email, email_hash) VALUES (?, ?, ?, ?, ?)',
+        $name, hash::fast(lc($name)), $password, $email, hash::fast($email)
     );
     
     # delete them from the user's-awaiting-confirmation table
@@ -520,8 +520,8 @@ sub register {
 
         # add user to database
         my $query = $DB->query(
-            'INSERT INTO user_new (name, password, email, ip, confirmation_hash, ctime) VALUES (?, ?, ?, ?, ?, UTC_TIMESTAMP())',
-            $INPUT{'username'}, hash::secure($INPUT{'password'}), $INPUT{'email'}, $ENV{'REMOTE_ADDR'}, $confirmation_hash
+            'INSERT INTO user_new (name, password, email, email_hash, ip, confirmation_hash, ctime) VALUES (?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())',
+            $INPUT{'username'}, hash::secure($INPUT{'password'}), $INPUT{'email'}, fast::hash($INPUT{'email'}), $ENV{'REMOTE_ADDR'}, $confirmation_hash
         );
 
         # send activation email
@@ -1268,8 +1268,8 @@ sub _validate_email {
     throw 'validation_error' => 'Invalid email address.' unless email::is_valid_email($INPUT{'email'});
     my $user_id = shift;
     my $query = $user_id
-        ? $DB->query('SELECT COUNT(*) FROM users WHERE email = ? and id != ? LIMIT 1', $INPUT{'email'}, $user_id)
-        : $DB->query('SELECT COUNT(*) FROM users WHERE email = ? LIMIT 1', $INPUT{'email'});
+        ? $DB->query('SELECT COUNT(*) FROM users WHERE email_hash = ? and id != ? LIMIT 1', hash::fast($INPUT{'email'}), $user_id)
+        : $DB->query('SELECT COUNT(*) FROM users WHERE email_hash = ? LIMIT 1', hash::fast($INPUT{'email'}));
     throw 'validation_error' => 'The email address ' . xml::entities($INPUT{'email'}) . ' is already in use by another user.' if $query->fetchrow_arrayref()->[0];
     my $query = $DB->query('SELECT COUNT(*) FROM user_new WHERE email = ? LIMIT 1', $INPUT{'email'});
     throw 'validation_error' => 'The email address ' . xml::entities($INPUT{'email'}) . ' is already registered by another user, but has not yet been confirmed.' if $query->fetchrow_arrayref()->[0];

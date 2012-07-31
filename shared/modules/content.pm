@@ -142,6 +142,9 @@ sub view_page {
     print "\t</content>\n";
     
     #url::_load_nav_urls_by_parent_id($id, $config{'subpage_depth'}) if $config{'subpage_depth'};
+    
+    # contextual admin menu
+    _contextual_admin_menu($id);
 }
 
 =xml
@@ -234,12 +237,8 @@ sub edit_page {
             # display the page
             view_page($page_id, 'ignore_query_string' => 1, 'skip_admin_links' => 1);
 
-            # administrative links
-            #module::sims::admin_menu::menu_url('This Page' => "$BASE_URL$url/");
-            #module::sims::admin_menu::add_sub_page_item('menu' => 'This Page', 'parent_id' => $REQUEST{'current_url'}->{'id'});
-            #module::sims::admin_menu::add_item('menu' => 'This Page', 'label' => 'Edit',      'url' => "$BASE_URL$url/?a=edit")      if $PERMISSIONS{'content_edit'};
-            #module::sims::admin_menu::add_item('menu' => 'This Page', 'label' => 'Delete',    'url' => "$BASE_URL$url/?a=delete")    if $PERMISSIONS{'content_delete'};
-            #module::sims::admin_menu::add_item('menu' => 'This Page', 'label' => 'Revisions', 'url' => "$BASE_URL$url/?a=revisions") if $PERMISSIONS{'content_revisions'};
+            # contextual admin menu
+            _contextual_admin_menu($page_id);
         }
 
         # the user is not trying to submit, only preview, or they tried to submit and their page did not validate
@@ -268,11 +267,8 @@ sub edit_page {
             _print_fields(@fields);
             print "\t</content>\n";
 
-            # administrative links
-            #module::sims::admin_menu::menu_url('This Page' => "$BASE_URL$page->{url}/");
-            #module::sims::admin_menu::add_sub_page_item('menu' => 'This Page', 'parent_id' => $REQUEST{'current_url'}->{'id'});
-            #module::sims::admin_menu::add_item('menu' => 'This Page', 'label' => 'Delete',    'url' => "$BASE_URL$page->{url}/?a=delete")    if $PERMISSIONS{'content_delete'};
-            #module::sims::admin_menu::add_item('menu' => 'This Page', 'label' => 'Revisions', 'url' => "$BASE_URL$page->{url}/?a=revisions") if $PERMISSIONS{'content_revisions'};
+            # contextual admin menu
+            _contextual_admin_menu($page_id, 'edit');
         }
     }
 
@@ -284,11 +280,8 @@ sub edit_page {
         _print_page_fields($page_id);
         print "\t</content>\n";
 
-        # administrative links
-        #module::sims::admin_menu::menu_url('This Page' => "$BASE_URL$page->{url}/");
-        #module::sims::admin_menu::add_sub_page_item('menu' => 'This Page', 'parent_id' => $REQUEST{'current_url'}->{'id'});
-        #module::sims::admin_menu::add_item('menu' => 'This Page', 'label' => 'Delete',    'url' => "$BASE_URL$page->{url}/?a=delete")    if $PERMISSIONS{'content_delete'};
-        #module::sims::admin_menu::add_item('menu' => 'This Page', 'label' => 'Revisions', 'url' => "$BASE_URL$page->{url}/?a=revisions") if $PERMISSIONS{'content_revisions'};
+        # contextual admin menu
+        _contextual_admin_menu($page_id, 'edit');
     }
 }
 
@@ -307,7 +300,7 @@ sub create_page {
     # validate parent id
     my $parent = {'id' => 0, 'url' => ''};
     if ($INPUT{'parent'}) {
-        $parent = url::get_url_by_id($INPUT{'parent'});
+        $parent = url::get_by_id($INPUT{'parent'});
         throw validation_error, 'Invalid parent ID.' unless $parent->{'id'};
     }
 
@@ -472,15 +465,12 @@ sub delete_page {
     throw 'request_404' unless $select_page->rows();
     my ($page_id, $title, $url_hash) = @{$select_page->fetchrow_arrayref()};
 
-    # administrative links
-    #module::sims::admin_menu::menu_url('This Page' => "$BASE_URL$REQUEST{url}/");
-    #module::sims::admin_menu::add_sub_page_item('menu' => 'This Page', 'parent_id' => $REQUEST{'current_url'}->{'id'});
-    #module::sims::admin_menu::add_item('menu' => 'This Page', 'label' => 'Edit',      'url' => "$BASE_URL$REQUEST{url}/?a=edit")      if $PERMISSIONS{'content_edit'};
-    #module::sims::admin_menu::add_item('menu' => 'This Page', 'label' => 'Revisions', 'url' => "$BASE_URL$REQUEST{url}/?a=revisions") if $PERMISSIONS{'content_revisions'};  
+    # contextual admin menu
+    _contextual_admin_menu($page_id, 'delete');
 
     # check if the current page has subpages
     my $query = $DB->query("SELECT COUNT(*) FROM ${DB_PREFIX}urls WHERE parent_id = ? LIMIT 1", $REQUEST{'current_url'}->{'id'});
-    throw error, 'A page with subpages cannot be deleted.' if $query->fetchrow_arrayref()->[0];
+    throw 'validation_error', 'A page with subpages cannot be deleted.' if $query->fetchrow_arrayref()->[0];
     # ??? throw error, 
 
     # get confirmation
@@ -760,6 +750,17 @@ sub hook_admin_center_modules_menu {
     menu::add_item('parent' => $_[0], 'label' => 'Content', 'url' => $module_admin_base_url) if $PERMISSIONS{'content_admin_config'};
 }
 
+# called when the admin menu is printed (after the module admin menu)
+event::register_hook('admin_menu', 'hook_admin_menu');
+sub hook_admin_menu {
+    menu::add_item('parent' => $_[0], 'label' => 'Content', 'url' => $module_admin_base_url) if ($REQUEST{'module'} ne 'content' and $PERMISSIONS{'content_admin'});
+
+    my $item = menu::add_item('menu' => 'admin', 'label' => 'Content', 'id' => 'content');
+    menu::add_item('parent' => $item, 'label' => 'Create a Page',    'url' => $module_admin_base_url . 'create/') if $PERMISSIONS{'content_create'};
+    menu::add_item('parent' => $item, 'label' => 'Manage Templates', 'url' => $module_admin_base_url . 'templates/') if $PERMISSIONS{'content_templates'};
+    menu::add_item('parent' => $item, 'label' => 'Configuration',    'url' => $module_admin_base_url . 'config/') if $PERMISSIONS{'content_admin_config'};
+}
+
 
 # ----------------------------------------------------------------------------
 # Helpers
@@ -939,6 +940,18 @@ sub _delete_old_revisions {
         my $rev_id = $rev->[0];
         $DB->do("DELETE FROM ${module_db_prefix}page_revisions WHERE id = $rev_id LIMIT 1");
         $DB->do("DELETE FROM ${module_db_prefix}page_field_history WHERE revision_id = $rev_id");
+    }
+}
+
+# Prints contextual admin menus
+sub _contextual_admin_menu {
+    my ($id, $exclude) = @_;
+    if ($PERMISSIONS{'content_admin'}) {
+        my $item = menu::add_item('menu' => 'admin', 'label' => 'This Page', 'id' => 'content');
+        menu::add_item('parent' => $item, 'label' => 'Create a Sub-page',    'url' => '/' . $REQUEST{'url'} . '/?a=create&amp;parent=' . $id) if $PERMISSIONS{'content_create'} and $exclude ne 'create';
+        menu::add_item('parent' => $item, 'label' => 'Edit',                 'url' => '/' . $REQUEST{'url'} . '/?a=edit') if $PERMISSIONS{'content_edit'} and $exclude ne 'edit';
+        menu::add_item('parent' => $item, 'label' => 'Delete',               'url' => '/' . $REQUEST{'url'} . '/?a=delete') if $PERMISSIONS{'content_delete'} and $exclude ne 'delete';
+        #menu::add_item('parent' => $item, 'label' => 'Revisions',            'url' => '/' . $REQUEST{'url'} . '/?a=revisions') if $PERMISSIONS{'content_revisions'} and $exclude ne 'revisions';
     }
 }
 
