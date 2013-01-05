@@ -1,0 +1,96 @@
+@charset "UTF-8";
+
+/*
+	BitPiston.v1
+	http://www.bitpiston.com/
+    Mobile - Low Res Stylsheet
+*/
+
+* { -webkit-text-size-adjust: none; }
+body { margin: 0; padding: 0.5em; }
+body, #content-primary, #content-secondary { width: auto; float: none; }
+#content-secondary { margin-top: 2.25em; }
+
+/* =Headers */
+#header { padding: 0.5em 0; }
+
+/* =Logotype */
+#title { margin: 0 auto; width: 230px; }
+
+/* =Navigation */
+#navigation {
+	margin: 14px auto 8px;
+	position: inherit;
+	bottom: auto;
+	top: auto;
+	left: auto;
+	right: auto;
+	text-align: center;
+	min-height: 1.5em;
+}
+#navigation li {
+    float: none;
+    display: inline-block;
+	margin: 14px 11px 4px;
+}
+
+/* =Footer */
+#footer { text-align: center; }
+#footer ul.links li { margin: 0 0.25em; }
+
+/* =Home */
+body.home #content-secondary { margin-bottom: -1.5em; }
+ul.products a {
+    text-align: center;
+	padding: 48px 0 6px;
+}
+ul.products li.oyster a { background-position: center 0; }
+ul.products li.oyster a:hover, ul.products li.oyster a:focus { background-position: center -244px; }
+
+/* =Contact */
+#content-primary form div, #content-primary form {
+	float: none;
+	margin: 0 0 1em;
+}
+#content-primary form { margin-top: 3em; }
+#content-primary form div:nth-child(2) { float: none; }
+#content-primary form div.even { float: none; }
+#content-primary input[type=submit] { right: -0.75em; }
+
+/* Portrait */
+@media screen and (max-width: 320px)
+{
+    html { width: 320px; min-width: 320px; max-width: 320px; }
+    #content-primary form, #content-primary input[type=text], #content-primary textarea, #content-primary form div:nth-child(3) input, 
+    #content-primary form div.textarea, #content-primary label { width: 296px; }
+    
+    /* =Portfolio */
+    #content-primary img { max-width: 296px; }
+    body.portfolio #content-primary li { 
+        float: none;
+        width: auto;
+    }
+}
+ 
+/* Landscape */
+@media screen and (min-width: 321px)
+{
+    html { width: 480px; min-width: 480px; max-width: 480px; }
+    #content-primary form, #content-primary input[type=text], #content-primary form div:nth-child(3) input, 
+    #content-primary textarea { width: 456px; }
+    #content-primary img { max-width: 456px; }
+}
+
+/* High DPI Images */
+@media screen and (-webkit-device-pixel-ratio: 2) {
+    #title {
+        background: url("./images/header.logo2-hires.png") -8px 0 no-repeat; 
+    	-webkit-background-size: auto 158px;
+    }
+    #title:focus, #title:hover { background-position: -8px -79px; }
+    ul.products li.oyster a {
+        background-image: url("../product.oyster-hires.png"); 
+    	-webkit-background-size: 144px auto;
+    }
+    ul.products li.oyster a:hover, ul.products li.oyster a:focus { background-position: center -180px; }
+}
