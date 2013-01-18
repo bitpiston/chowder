@@ -755,7 +755,7 @@ event::register_hook('admin_menu', 'hook_admin_menu');
 sub hook_admin_menu {
     menu::add_item('parent' => $_[0], 'label' => 'Content', 'url' => $module_admin_base_url) if ($REQUEST{'module'} ne 'content' and $PERMISSIONS{'content_admin'});
 
-    my $item = menu::add_item('menu' => 'admin', 'label' => 'Content', 'id' => 'content');
+    my $item = menu::add_item('menu' => 'admin', 'label' => 'Content', 'id' => 'content', 'require_children' => 1);
     menu::add_item('parent' => $item, 'label' => 'Create a Page',    'url' => $module_admin_base_url . 'create/') if $PERMISSIONS{'content_create'};
     menu::add_item('parent' => $item, 'label' => 'Manage Templates', 'url' => $module_admin_base_url . 'templates/') if $PERMISSIONS{'content_templates'};
     menu::add_item('parent' => $item, 'label' => 'Configuration',    'url' => $module_admin_base_url . 'config/') if $PERMISSIONS{'content_admin_config'};
