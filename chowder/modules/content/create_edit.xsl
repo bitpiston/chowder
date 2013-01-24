@@ -111,13 +111,20 @@
 				<legend>Edit Fields</legend>
 				<dl>
 
-					<!-- title -->
-					<dt><label for="page_title">Title:</label></dt>
+					<!-- page title -->
+					<dt><label for="page_title">Page Title:</label></dt>
 					<dd><input class="large" type="text" name="title" id="page_title" value="{@title}" /></dd>
+					
+					<!-- navigation title -->
+					<dt><label for="nav_title">Navigation Title:</label></dt>
+					<dd><input class="large" type="text" name="nav_title" id="nav_title" value="{@nav_title}" /></dd>
                     
-					<!-- Slug -->
+					<!-- url slug -->
 					<dt><label for="page_slug">Slug:</label></dt>
-					<dd><input class="large" type="text" name="slug" id="page_slug" value="{@slug}" /></dd>
+					<dd>
+						<xsl:if test="@parent_url != ''"><span style="float: left; text-align: bottom; line-height: 2.1">/<xsl:value-of select="@parent_url" />/</span></xsl:if>
+						<input class="large" type="text" name="slug" id="page_slug" value="{@slug}" />
+					</dd>
                                         
 					<!-- show navigation link -->
 					<dd>
