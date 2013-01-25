@@ -160,14 +160,15 @@ sub edit_page {
     user::print_module_permissions('content');
     
     # validate page id and fetch page data
-    my $select_page      = $DB->query('SELECT * ' . _from());
+    my $select_page          = $DB->query('SELECT * ' . _from());
     throw 'request_404' unless $select_page->rows();
-    my $page             = $select_page->fetchrow_hashref();
-    my $page_id          = $page->{'id'};
-    my $page_slug        = $page->{'slug'};
-    $page->{'url'}       = $REQUEST{'url'};     # this needs to be deprecated and replaced with $REQUEST{'url}
-    $page->{'parent_id'} = $REQUEST{'current_url'}->{'parent_id'};  # this needs to be deprecated and replaced with $REQUEST{'current_url'}->{'parent_id'}
-    my $parent           = url::get_by_id($page->{'parent_id'});
+    my $page                 = $select_page->fetchrow_hashref();
+    my $page_id              = $page->{'id'};
+    my $page_slug            = $page->{'slug'};
+    $page->{'url'}           = $REQUEST{'url'};     # this needs to be deprecated and replaced with $REQUEST{'url}
+    $page->{'parent_id'}     = $REQUEST{'current_url'}->{'parent_id'};  # this needs to be deprecated and replaced with $REQUEST{'current_url'}->{'parent_id'}
+    $page->{'show_nav_link'} = $REQUEST{'current_url'}->{'show_nav_link'};
+    my $parent               = url::get_by_id($page->{'parent_id'});
     
     # if the form has been submitted
     if ($ENV{'REQUEST_METHOD'} eq 'POST') {
