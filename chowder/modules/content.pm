@@ -280,7 +280,7 @@ sub edit_page {
     # print a fresh edit page form
     else {
         style::include_template('create_edit');
-        print "\t<content action=\"edit\" id=\"$page->{id}\" parent=\"$page->{parent_id}\" title=\"$page->{title}\" nav_title=\"$nav_title\" slug=\"$page->{slug}\" parent_url=\"$parent->{url}\" show_nav_link=\"" . ( $page->{'show_nav_link'} ? 'true' : 'false' ) . "\" can_add_files=\"" . ( $PERMISSIONS{'file_add'} ? 'true' : 'false' ) . "\">\n";
+        print "\t<content action=\"edit\" id=\"$page->{id}\" parent=\"$page->{parent_id}\" title=\"$page->{title}\" nav_title=\"$page->{nav_title}\" slug=\"$page->{slug}\" parent_url=\"$parent->{url}\" show_nav_link=\"" . ( $page->{'show_nav_link'} ? 'true' : 'false' ) . "\" can_add_files=\"" . ( $PERMISSIONS{'file_add'} ? 'true' : 'false' ) . "\">\n";
         #print "\t\t<field type=\"text\" />\n";
         _print_page_fields($page_id);
         print "\t</content>\n";

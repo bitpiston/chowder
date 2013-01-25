@@ -12,6 +12,6 @@
 
 <xsl:template match="/oyster/content[@action = 'view']" mode="html_head">
 	<xsl:if test="description">
-		<meta name="description" content="{description/*}" />
+		<meta name="description" content="{description}" />
 	</xsl:if>
 </xsl:template>
