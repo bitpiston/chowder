@@ -199,8 +199,7 @@ sub edit_page {
         
         # assemble some variables
         my $title     = xml::entities($INPUT{'title'}, 'proper_english');
-        #my $nav_title = xml::entities($INPUT{'nav_title'}, 'proper_english');
-        my $nav_title = $INPUT{'nav_title'};
+        my $nav_title = xml::entities($INPUT{'nav_title'}, 'proper_english');
         my $slug      = $INPUT{'slug'};
         
         # is the user trying to save this?
@@ -342,8 +341,7 @@ sub create_page {
         
         # assemble some variables
         my $title     = xml::entities($INPUT{'title'}, 'proper_english');
-        #my $nav_title = xml::entities($INPUT{'nav_title'}, 'proper_english');
-        my $nav_title = $INPUT{'nav_title'};
+        my $nav_title = xml::entities($INPUT{'nav_title'}, 'proper_english');
         my $slug      = $INPUT{'slug'};
         
         # is the user trying to save this?
