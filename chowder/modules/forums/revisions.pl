@@ -12,7 +12,7 @@ $revision[1]{'up'}{'site'} = sub {
     module::enable('forums');
     
     # Create config table and populate initial settings
-    $DB->query(qq~CREATE TABLE IF NOT EXISTS `${MODULE_DB_PREFIX}config` ( `name` tinytext NOT NULL, `value` tinytext NOT NULL ) ENGINE=MyISAM DEFAULT CHARSET=latin1~);
+    $DB->query(qq~CREATE TABLE IF NOT EXISTS `${MODULE_DB_PREFIX}config` ( `name` tinytext NOT NULL, `value` tinytext NOT NULL ) ENGINE=InnoDB DEFAULT CHARSET=utf8~);
     $DB->query(qq~INSERT INTO `${MODULE_DB_PREFIX}config` (`name`, `value`) VALUES
         ('show_online_users', '1'),
         ('threads_per_page', '30'),
@@ -34,7 +34,7 @@ $revision[1]{'up'}{'site'} = sub {
         `threads` int(11) NOT NULL,
         `posts` int(11) NOT NULL,
         UNIQUE KEY `id` (`id`)
-        ) ENGINE=MyISAM  DEFAULT CHARSET=latin1~);
+        ) ENGINE=InnoDB  DEFAULT CHARSET=utf8~);
     $DB->query(qq~INSERT INTO `${DB_PREFIX}forums` (`id`, `name`, `parent_id`, `description`, `threads`, `posts`) VALUES
         (1, 'Placeholder forum', 0, 'The placeholder forum.', 1, 1)~);
     
@@ -56,7 +56,7 @@ $revision[1]{'up'}{'site'} = sub {
         `locked` tinyint(4) NOT NULL default '0',
         `moved_from` int(11) default NULL,
         PRIMARY KEY  (`id`)
-        ) ENGINE=MyISAM  DEFAULT CHARSET=latin1~);
+        ) ENGINE=InnoDB  DEFAULT CHARSET=utf8~);
     $DB->query(qq~INSERT INTO `${MODULE_DB_PREFIX}threads` (`id`, `title`, `forum_id`, `author_id`, `author_name`, `date`, `lastpost_date`, `lastpost_user`, `views`, `replies`) VALUES
         (1, 'Frist psot!', 1, 1, 'test', 1152166974, 1154203367, 'test', 0, 0, 0)~);
     
@@ -78,7 +78,7 @@ $revision[1]{'up'}{'site'} = sub {
         `disable_smiles` tinyint(4) NOT NULL,
         `disable_bbcode` tinyint(4) NOT NULL,
         PRIMARY KEY  (`id`)
-        ) ENGINE=MyISAM  DEFAULT CHARSET=latin1~);
+        ) ENGINE=InnoDB  DEFAULT CHARSET=utf8~);
     $DB->query(qq~INSERT INTO `${MODULE_DB_PREFIX}posts` (`id`, `title`, `thread_id`, `author_id`, `author_name`, `body`, `date`) VALUES
         (1, 'Frist psot!!!!!', 1, 1, 'test', 'Hello world', 1152166974)~);
         
@@ -91,14 +91,14 @@ $revision[1]{'up'}{'site'} = sub {
       `user_name` varchar(65) NOT NULL,
       `user_id` int(11) default NULL,
       UNIQUE KEY `user_name` (`user_name`)
-      ) ENGINE=MyISAM DEFAULT CHARSET=latin1~);
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8~);
       
     # Table structure for site_forums_notify
     $DB->query(qq~CREATE TABLE IF NOT EXISTS `site_forums_notify` (
       `user_id` int(11) NOT NULL,
       `thread_id` int(11) NOT NULL,
       `last_ntime` int(11) default NULL
-    ) ENGINE=MyISAM DEFAULT CHARSET=latin1~);
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8~);
     
     # Default email templates for the forums
     $DB->query(qq~INSERT INTO `${DB_PREFIX}email_templates` (
