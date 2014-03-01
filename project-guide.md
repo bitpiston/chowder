@@ -201,3 +201,7 @@ Almost exactly like svn except you have to first ```git add <file/dir>``` to con
 
 #### git stash
 Unlike subversion git will not let you switch to another branch with uncommited changes or untracked files. You will probably encounter times where you need to switch to another branch and your current working directory might not be ready for a commit – enter git stash. To store your changes: ```git stash``` -- you can then switch to another branch and once back to your branch to reapply changes: ```git stash apply```. 
+
+### Recommended reading for git
+
+http://codeinthehole.com/writing/pull-requests-and-other-good-practices-for-teams-using-github/
